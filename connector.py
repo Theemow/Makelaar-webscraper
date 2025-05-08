@@ -7,6 +7,9 @@ Het verwerkt de geschraapte data en slaat nieuwe listings op in de database.
 
 from datetime import date
 from typing import Dict, List, Set, Tuple
+import threading
+import queue
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Import the logging service
 from log_service import LogService, get_logger
@@ -40,6 +43,9 @@ class Connector:
         self.nieuwe_listings = []  # Houdt nieuwe listings bij voor rapportages
         self.processed_addresses: Set[str] = set()  # Set om adressen bij te houden die al zijn verwerkt
         self.log_service = LogService()  # Get the singleton instance
+        
+        # Thread safety
+        self.result_lock = threading.Lock()  # Lock for threadsafe access to shared resources
     
     def verwerk_broker(self, broker_naam: str, scraper_type: str, broker_url: str = None) -> Tuple[List[Dict], List[Dict]]:
         """
@@ -53,7 +59,8 @@ class Connector:
         Returns:
             Tuple containing (nieuwe_properties, verwijderde_properties)
         """
-        logger.info("Verwerken van makelaar: %s", broker_naam)
+        thread_name = threading.current_thread().name
+        logger.info("Verwerken van makelaar: %s op thread %s", broker_naam, thread_name)
         
         # 1. Controleer of de broker bestaat, zo niet maak deze aan
         broker = self.db.get_broker_agency_by_name(broker_naam)
@@ -82,9 +89,8 @@ class Connector:
             scraped_properties, db_properties
         )
         
-        # 6. Verwerk de verschillende categorieën
-        self._verwerk_nieuwe_properties(nieuwe_properties, broker.id)
-        self._verwerk_verwijderde_properties(verwijderde_properties)
+        # Return alleen de resultaten zonder database updates uit te voeren
+        # De daadwerkelijke updates zullen later gecoördineerd worden vanuit de hoofdthread
         
         # 7. Bewaar unieke nieuwe properties voor rapportage op basis van combinatie van kenmerken
         # ipv alleen adres
@@ -101,9 +107,9 @@ class Connector:
             
             if unique_key not in processed_property_keys:
                 processed_property_keys.add(unique_key)
+                # Add broker_id to property for later processing
+                prop['broker_id'] = broker.id
                 unique_nieuwe_listings.append(prop)
-        
-        self.nieuwe_listings.extend(unique_nieuwe_listings)
         
         # Log summary for this broker
         self.log_service.log_broker_processing(
@@ -113,6 +119,107 @@ class Connector:
         )
         
         return unique_nieuwe_listings, verwijderde_properties
+
+    def parallel_process_brokers(self, brokers: List[Dict], max_workers=None) -> Tuple[List[Dict], List[Dict]]:
+        """
+        Verwerk meerdere makelaars parallel met multithreading.
+        
+        Args:
+            brokers: Lijst met dictionaries die broker informatie bevatten (naam, type, url)
+            max_workers: Maximum aantal threads (standaard is None, wat betekent CPUs*5)
+            
+        Returns:
+            Tuple met (alle_nieuwe_properties, alle_verwijderde_properties)
+        """
+        logger.info(f"Starting parallel processing of {len(brokers)} brokers with max_workers={max_workers}")
+        
+        all_nieuwe_properties = []
+        all_verwijderde_properties = []
+        futures_to_broker = {}
+        
+        # Gebruik ThreadPoolExecutor om de makelaars parallel te verwerken
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Start scraping jobs voor elke makelaar
+            for broker in brokers:
+                # Name threads for better logging
+                thread_name = f"Thread-{broker['naam']}"
+                
+                # Submit broker to thread pool
+                future = executor.submit(
+                    self._thread_wrapper,
+                    broker['naam'],
+                    broker['type'],
+                    broker['url'],
+                    thread_name
+                )
+                futures_to_broker[future] = broker['naam']
+            
+            # Verwerk de resultaten wanneer ze beschikbaar komen
+            for future in as_completed(futures_to_broker):
+                broker_name = futures_to_broker[future]
+                try:
+                    nieuwe, verwijderde = future.result()
+                    
+                    # Thread-safe update of the combined results
+                    with self.result_lock:
+                        # Add broker name to each property for email grouping
+                        for prop in nieuwe:
+                            prop['broker_naam'] = broker_name
+                        
+                        all_nieuwe_properties.extend(nieuwe)
+                        all_verwijderde_properties.extend(verwijderde)
+                        
+                except Exception as exc:
+                    logger.error(f"Broker {broker_name} generated an exception: {exc}")
+        
+        logger.info(f"Parallel processing completed - Found {len(all_nieuwe_properties)} new and {len(all_verwijderde_properties)} removed properties")
+        return all_nieuwe_properties, all_verwijderde_properties
+
+    def _thread_wrapper(self, broker_naam, scraper_type, broker_url, thread_name):
+        """
+        Wrapper function for threading to set thread name.
+        """
+        # Set thread name for logging
+        threading.current_thread().name = thread_name
+        return self.verwerk_broker(broker_naam, scraper_type, broker_url)
+    
+    def apply_database_updates(self, nieuwe_properties, verwijderde_properties):
+        """
+        Apply all database updates in a synchronized manner.
+        This should be called from the main thread after parallel scraping is complete.
+        
+        Args:
+            nieuwe_properties: List of new properties to add
+            verwijderde_properties: List of properties to remove
+        """
+        logger.info(f"Applying database updates - {len(nieuwe_properties)} new, {len(verwijderde_properties)} removed")
+        
+        # Process new properties
+        for prop in nieuwe_properties:
+            try:
+                # Get the broker_id that was attached during scraping
+                broker_id = prop.get('broker_id')
+                if not broker_id:
+                    logger.error(f"Missing broker_id for property: {prop.get('adres', 'unknown')}")
+                    continue
+                
+                self._verwerk_nieuwe_properties([prop], broker_id)
+                
+            except Exception as e:
+                logger.error(f"Error processing new property: {e}")
+        
+        # Process removed properties
+        for prop in verwijderde_properties:
+            try:
+                self._verwerk_verwijderde_properties([prop])
+            except Exception as e:
+                logger.error(f"Error processing removed property: {e}")
+        
+        # Store for reporting
+        with self.result_lock:
+            self.nieuwe_listings.extend(nieuwe_properties)
+        
+        return len(nieuwe_properties), len(verwijderde_properties)
     
     def _get_scraper(self, scraper_type: str) -> BaseScraper:
         """
@@ -390,20 +497,11 @@ def main():
         {"naam": "Pararius", "type": "pararius", "url": "https://www.pararius.nl/huurwoningen/amsterdam/"}
     ]
     
-    # Verwerk elke makelaar
-    alle_nieuwe_properties = []
-    alle_verwijderde_properties = []
+    # Process brokers in parallel
+    alle_nieuwe_properties, alle_verwijderde_properties = communicatie.parallel_process_brokers(makelaars)
     
-    for makelaar in makelaars:
-        try:
-            nieuwe, verwijderde = communicatie.verwerk_broker(
-                makelaar["naam"], makelaar["type"], makelaar["url"]
-            )
-            alle_nieuwe_properties.extend(nieuwe)
-            alle_verwijderde_properties.extend(verwijderde)
-            
-        except (ValueError, AttributeError, KeyError) as e:
-            logger.error("Fout bij verwerken van makelaar %s: %s", makelaar['naam'], e)
+    # Apply database updates synchronously
+    communicatie.apply_database_updates(alle_nieuwe_properties, alle_verwijderde_properties)
     
     # Log resultaten
     logger.info("Totaal aantal nieuwe properties: %d", len(alle_nieuwe_properties))

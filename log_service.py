@@ -7,6 +7,7 @@ to ensure consistent logging to both console and file.
 
 import logging
 import os
+import threading
 from datetime import datetime
 from typing import List, Optional
 
@@ -48,16 +49,16 @@ class LogService:
         for handler in self.root_logger.handlers[:]:
             self.root_logger.removeHandler(handler)
         
-        # Create console handler
+        # Create console handler with thread information
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.INFO)
-        console_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        console_format = logging.Formatter('%(asctime)s - [%(threadName)s] - %(name)s - %(levelname)s - %(message)s')
         console_handler.setFormatter(console_format)
         
-        # Create file handler for summary log
+        # Create file handler for summary log with thread information
         file_handler = logging.FileHandler(log_filename)
         file_handler.setLevel(logging.INFO)
-        file_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        file_format = logging.Formatter('%(asctime)s - [%(threadName)s] - %(levelname)s - %(message)s')
         file_handler.setFormatter(file_format)
         
         # Add handlers to the root logger
