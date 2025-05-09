@@ -6,6 +6,7 @@ from typing import Dict, Type
 
 from scrapers.base_scraper import BaseScraper
 from scrapers.ditters_scraper import DittersScraper
+from scrapers.interhouse_scraper import InterHouseScraper
 from scrapers.pararius_scraper import ParariusScraper
 from scrapers.vdbunt_scraper import VdBuntScraper
 from scrapers.zonnenberg_scraper import ZonnenbergScraper
@@ -36,10 +37,22 @@ class ScraperFactory:
         """
         website = website.lower()
 
+        # Special handling for interhouse with different locations
+        if website == "interhouse-utrecht":
+            return InterHouseScraper(location="Utrecht")
+        elif website == "interhouse-amersfoort":
+            return InterHouseScraper(location="Amersfoort")
+        elif website == "interhouse":  # Default to Utrecht for backwards compatibility
+            return InterHouseScraper(location="Utrecht")
+
         if website in ScraperFactory._SCRAPERS:
             return ScraperFactory._SCRAPERS[website]()
         else:
-            available_scrapers = ", ".join(ScraperFactory._SCRAPERS.keys())
+            available_scrapers = list(ScraperFactory._SCRAPERS.keys())
+            available_scrapers.extend(
+                ["interhouse", "interhouse-utrecht", "interhouse-amersfoort"]
+            )
+            available_scrapers_str = ", ".join(available_scrapers)
             raise ValueError(
-                f"No scraper available for website: {website}. Available scrapers: {available_scrapers}"
+                f"No scraper available for website: {website}. Available scrapers: {available_scrapers_str}"
             )

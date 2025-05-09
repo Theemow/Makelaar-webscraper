@@ -210,12 +210,12 @@ Please implement a new scraper for [website name] at [website URL].
    - Please add this scraper to the ScraperFactory and ensure it's properly integrated
    - Follow the same logging pattern as other scrapers
    - Use the BaseScraper as parent class
+   - add the new scraper to the makelaars array in the Huurhuis_webscraper file
+   - Create a scraper test method in the Huurhuis_webscraper_tests file following the same pattern as the other tests
 
 5. Special Considerations:
    - Any specific challenges (e.g., dynamic content, anti-scraping measures)
    - Any unique data formatting needed for this site
-   - add the new scraper to the makelaars array in the Huurhuis_webscraper file
-   - Create a scraper test method in the Huurhuis_webscraper_tests file following the same pattern as the other tests
 ```
 
 Example:
@@ -242,12 +242,12 @@ Please add a new scraper for ditters.nl with the URL https://www.ditters.nl/woni
    - Please add this scraper to the ScraperFactory
    - Implement logging similar to other scrapers
    - Follow the BaseScraper pattern
+   - add the new scraper to the makelaars array in the Huurhuis_webscraper file
+   - Create a scraper test method in the Huurhuis_webscraper_tests file following the same pattern as the other tests
 
 5. Special Considerations:
    - Property addresses need to be extracted from multiple elements
    - Price format differs from other sites and needs normalization
-   - add the new scraper to the makelaars array in the Huurhuis_webscraper file
-   - Create a scraper test method in the Huurhuis_webscraper_tests file following the same pattern as the other tests
 ```
 
 ### Customizing Database Schema
