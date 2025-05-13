@@ -142,8 +142,12 @@ class InterHouseScraper(BaseScraper):
             # Wait for the page to load (wait for some expected element)
             try:
                 WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located(
-                        (By.CSS_SELECTOR, "div.c-result-item.building-result")
+                    lambda driver: (
+                        driver.find_elements(By.CSS_SELECTOR, "div.c-result-item")
+                        or EC.text_to_be_present_in_element(
+                            (By.ID, "building-search-results"),
+                            "Er zijn helaas geen resultaten gevonden",
+                        )(driver)
                     )
                 )
             except Exception as e:
