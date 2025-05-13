@@ -10,6 +10,7 @@ from scrapers.interhouse_scraper import InterHouseScraper
 from scrapers.pararius_scraper import ParariusScraper
 from scrapers.vdbunt_scraper import VdBuntScraper
 from scrapers.vastgoednederland_scraper import VastgoedNederlandScraper
+from scrapers.vbt_scraper import VBTScraper
 from scrapers.zonnenberg_scraper import ZonnenbergScraper
 
 
@@ -22,7 +23,7 @@ class ScraperFactory:
         "zonnenberg": ZonnenbergScraper,
         "ditters": DittersScraper,
         "vastgoednederland": VastgoedNederlandScraper,
-        "vastgoednederland": VastgoedNederlandScraper,
+        "vbt": VBTScraper,
     }
 
     @staticmethod
