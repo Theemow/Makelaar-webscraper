@@ -4,11 +4,20 @@ A Python application that scrapes rental property listings from various Dutch re
 
 ## Features
 
-- Automatically scrapes rental property listings from multiple websites (currently: VdBunt, Pararius, and Zonnenberg)
+- Automatically scrapes rental property listings from multiple websites (currently supports 8 real estate websites):
+  - Van Roomen Van de Bunt NVM Makelaars
+  - Pararius
+  - Zonnenberg Makelaardij
+  - Ditters Makelaars
+  - InterHouse Utrecht
+  - InterHouse Amersfoort
+  - VastgoedNederland Veenendaal
+  - VBT Verhuurmakelaars
 - Stores property data in a PostgreSQL database
 - Detects new and removed property listings
 - Sends email notifications with new rental properties
 - Comprehensive logging system for monitoring and troubleshooting
+- Supports multithreaded scraping for improved performance
 - Easily extendable for additional real estate websites
 
 ## Prerequisites
@@ -21,18 +30,26 @@ A Python application that scrapes rental property listings from various Dutch re
   - psycopg2
   - typing
   - dataclasses
+  - concurrent.futures (included in Python's standard library)
+  - For some scrapers (optional): playwright
 
 ## Installation
 
 1. Clone this repository:
-   ```
+   ```bash
    git clone https://github.com/yourusername/Huurhuis-webscraper.git
    cd Huurhuis-webscraper
    ```
 
 2. Install required dependencies:
+   ```bash
+   pip install beautifulsoup4 requests psycopg2 typing_extensions
    ```
-   pip install beautifulsoup4 requests psycopg2
+
+3. Install optional dependencies for JavaScript-heavy sites:
+   ```bash
+   pip install playwright
+   playwright install
    ```
 
 ## Configuration
@@ -96,16 +113,30 @@ CREATE TABLE "Property" (
 );
 ```
 
+Note: The database schema matches the dataclasses defined in `data_access.py`. If you modify the dataclasses, make sure to update your database schema accordingly.
+
 ## Usage
 
-The easiest way to run the application is through the provided Jupyter Notebook:
+You can now run the application as a standalone Python script:
 
-1. Open the `HuurhuisWebscraper.ipynb` notebook:
-   ```
-   jupyter notebook HuurhuisWebscraper.ipynb
-   ```
+```bash
+python huurhuis_webscraper.py
+```
 
-2. Run the notebook cells to execute the scraper and process the results.
+For testing individual scrapers or features, you can use the provided Jupyter Notebook:
+
+```bash
+jupyter notebook huurhuis_webscraper_tests.ipynb
+```
+
+The application will:
+
+1. Initialize the database and logger
+2. Connect to each configured real estate website
+3. Scrape property listings in parallel using multithreading
+4. Compare newly scraped data with existing database records
+5. Update the database with new and removed properties
+6. Send email notifications if any new properties are found
 
 ## How It Works
 
@@ -132,7 +163,8 @@ The easiest way to run the application is through the provided Jupyter Notebook:
 
 ### Core Files
 
-- `HuurhuisWebscraper.ipynb`: Main Jupyter notebook that ties everything together and contains execution code
+- `huurhuis_webscraper.py`: Main Python script that ties everything together and contains execution code
+- `huurhuis_webscraper_tests.ipynb`: Jupyter notebook for testing individual components
 - `config.py`: Configuration settings for email notifications and database connection
 - `connector.py`: Main coordination module between scrapers and database
 - `data_access.py`: Contains classes for database operations (DataAccess, BrokerAgency, Property)
@@ -141,21 +173,40 @@ The easiest way to run the application is through the provided Jupyter Notebook:
 
 ### Scraper System
 
+The project uses a modular scraper system where each website has its own specialized scraper that inherits from a base class:
+
 - `scrapers/`: Directory containing scraper modules
   - `__init__.py`: Package initialization file
   - `base_scraper.py`: Abstract base class defining the scraper interface
   - `scraper_factory.py`: Factory for creating appropriate scrapers
   - `pararius_scraper.py`: Scraper for Pararius website
-  - `vdbunt_scraper.py`: Scraper for VdBunt website
+  - `vdbunt_scraper.py`: Scraper for Van Roomen Van de Bunt NVM Makelaars website
   - `zonnenberg_scraper.py`: Scraper for Zonnenberg Makelaardij website
+  - `ditters_scraper.py`: Scraper for Ditters Makelaars website
+  - `interhouse_scraper.py`: Scraper for InterHouse websites (Utrecht & Amersfoort)
+  - `vastgoednederland_scraper.py`: Scraper for VastgoedNederland Veenendaal website
+  - `vbt_scraper.py`: Scraper for VBT Verhuurmakelaars website
+
+#### Supported Scrapers
+
+| Scraper Type        | Website                         | Location Support    | JavaScript Required |
+|---------------------|--------------------------------|---------------------|---------------------|
+| vdbunt             | Van Roomen Van de Bunt         | Leusden area        | No                  |
+| pararius           | Pararius                        | Leusden             | No                  |
+| zonnenberg         | Zonnenberg Makelaardij          | Veenendaal area     | No                  |
+| ditters            | Ditters Makelaars               | Veenendaal area     | No                  |
+| interhouse-utrecht  | InterHouse                     | Utrecht             | Yes (optional)      |
+| interhouse-amersfoort| InterHouse                    | Amersfoort          | Yes (optional)      |
+| vastgoednederland   | VastgoedNederland              | Veenendaal area     | No                  |
+| vbt                | VBT Verhuurmakelaars            | Veenendaal area     | No                  |
 
 ## File Descriptions
 
 ### Main Files
 
-- **HuurhuisWebscraper.ipynb**: This is the main notebook that orchestrates the entire system. It imports all necessary components and includes the main process to run all scrapers, update the database, and send email notifications.
+- **huurhuis_webscraper.py**: This is the main Python script that orchestrates the entire system. It imports all necessary components and executes the main process to run all scrapers, update the database, and send email notifications.
 
-- **Huurhuis_Webscraper_Tests.ipynb**: Contains tests and examples for the different components of the system.
+- **huurhuis_webscraper_tests.ipynb**: Contains tests and examples for the different components of the system. Useful for debugging individual scrapers or testing new functionality.
 
 - **config.py**: Contains configuration variables for database connection and email sending. It's organized as two dictionaries: `DATABASE` for PostgreSQL connection parameters and `EMAIL` for SMTP settings.
 
@@ -182,14 +233,15 @@ To add support for a new real estate website:
 1. Create a new scraper class that inherits from `BaseScraper` in the scrapers directory
 2. Implement the required methods for scraping properties from the website
 3. Add the new scraper to the `ScraperFactory` in `scraper_factory.py`
-4. Update the `makelaars` list in `run_scraper_proces()` function to include the new website
+4. Update the `makelaars` list in `run_scraper_proces()` function within `huurhuis_webscraper.py` to include the new website
+5. Add a test method in the `huurhuis_webscraper_tests.ipynb` notebook to verify your new scraper works correctly
 
 ### Copilot template and example
 
 Effective Prompt Template:
 
-```txt
-Please implement a new scraper for [website name] at [website URL].
+```text
+Please implement a new scraper for [website name] at [website URL] that inherits from BaseScraper.
 
 1. HTML Structure:
    - Here's a sample HTML snippet of a property listing from the website:
@@ -210,8 +262,8 @@ Please implement a new scraper for [website name] at [website URL].
    - Please add this scraper to the ScraperFactory and ensure it's properly integrated
    - Follow the same logging pattern as other scrapers
    - Use the BaseScraper as parent class
-   - add the new scraper to the makelaars array in the Huurhuis_webscraper file
-   - Create a scraper test method in the Huurhuis_webscraper_tests file following the same pattern as the other tests
+   - Add the new scraper to the makelaars array in the huurhuis_webscraper.py file
+   - Create a scraper test method in the huurhuis_webscraper_tests.ipynb file following the same pattern as the other tests
 
 5. Special Considerations:
    - Any specific challenges (e.g., dynamic content, anti-scraping measures)
@@ -220,7 +272,7 @@ Please implement a new scraper for [website name] at [website URL].
 
 Example:
 
-```txt
+```text
 Please add a new scraper for ditters.nl with the URL https://www.ditters.nl/woningaanbod/?filter%5Bcategory%5D=%2FHuur
 
 1. HTML Structure:
@@ -242,8 +294,8 @@ Please add a new scraper for ditters.nl with the URL https://www.ditters.nl/woni
    - Please add this scraper to the ScraperFactory
    - Implement logging similar to other scrapers
    - Follow the BaseScraper pattern
-   - add the new scraper to the makelaars array in the Huurhuis_webscraper file
-   - Create a scraper test method in the Huurhuis_webscraper_tests file following the same pattern as the other tests
+   - Add the new scraper to the makelaars array in the huurhuis_webscraper.py file
+   - Create a scraper test method in the huurhuis_webscraper_tests.ipynb file following the same pattern as the other tests
 
 5. Special Considerations:
    - Property addresses need to be extracted from multiple elements
@@ -260,11 +312,24 @@ To modify the database schema:
 
 ### Scheduled Execution
 
-The application can be scheduled to run automatically:
+Now that the application is a standalone Python script, it can be easily scheduled to run automatically:
 
-- On Linux/Unix: Use crontab to schedule the execution at specified intervals
-- On Windows: Use Task Scheduler to run the script at specified times
-- Recommended scheduling: Twice daily (around 12:00 and 18:00) to catch new listings
+- On Linux/Unix: Use crontab to schedule the execution at specified intervals:
+
+```bash
+# Run at 12:00 and 18:00 every day
+0 12,18 * * * cd /path/to/Makelaar-webscraper && python huurhuis_webscraper.py
+```
+
+- On Windows: Use Task Scheduler to run the script at specified times:
+
+1. Create a new task in Windows Task Scheduler
+2. Set the trigger to run at specific times (e.g., 12:00 and 18:00 daily)
+3. Set the action to start a program: `python` with arguments `C:\path\to\Makelaar-webscraper\huurhuis_webscraper.py`
+
+- For Docker environments: Use docker-compose with a cron service or schedule through Kubernetes CronJobs
+
+Recommended scheduling: Twice daily (around 12:00 and 18:00) to catch new listings
 
 ## License
 
