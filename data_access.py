@@ -1,3 +1,4 @@
+# filepath: c:\Users\User\Documents\GitHub\Makelaar-webscraper\data_access.py
 from dataclasses import dataclass
 from datetime import date
 from typing import List, Optional
@@ -52,9 +53,9 @@ class DataAccess:
             with conn.cursor() as cursor:
                 cursor.execute(
                     """
-                    INSERT INTO "BrokerAgencies" ("BrokerName", "Hyperlink")
+                    INSERT INTO broker_agencies (broker_name, hyperlink)
                     VALUES (%s, %s)
-                    RETURNING "BrokerId"
+                    RETURNING broker_id
                     """,
                     (agency.naam, agency.link),
                 )
@@ -66,7 +67,7 @@ class DataAccess:
             with conn.cursor() as cursor:
                 cursor.execute(
                     """
-                    INSERT INTO "Property" ("BrokerId", "Adres", "Hyperlink", "Price", "Size")
+                    INSERT INTO property (broker_id, adres, hyperlink, price, size)
                     VALUES (%s, %s, %s, %s, %s)
                     """,
                     (
@@ -85,9 +86,9 @@ class DataAccess:
             with conn.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT "BrokerId", "BrokerName", "Hyperlink"
-                    FROM "BrokerAgencies"
-                    WHERE "BrokerName" = %s
+                    SELECT broker_id, broker_name, hyperlink
+                    FROM broker_agencies
+                    WHERE broker_name = %s
                     """,
                     (agency_name,),
                 )
@@ -102,9 +103,9 @@ class DataAccess:
             with conn.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT "BrokerId", "BrokerName", "Hyperlink"
-                    FROM "BrokerAgencies"
-                    WHERE "BrokerId" = %s
+                    SELECT broker_id, broker_name, hyperlink
+                    FROM broker_agencies
+                    WHERE broker_id = %s
                     """,
                     (agency_id,),
                 )
@@ -119,9 +120,9 @@ class DataAccess:
             with conn.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT "BrokerId", "Adres", "Hyperlink", CURRENT_DATE, 'Onbekend', "Price", "Size"
-                    FROM "Property"
-                    WHERE "BrokerId" = %s
+                    SELECT broker_id, adres, hyperlink, CURRENT_DATE, 'Onbekend', price, size
+                    FROM property
+                    WHERE broker_id = %s
                     """,
                     (agency_id,),
                 )
@@ -145,8 +146,8 @@ class DataAccess:
             with conn.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT "BrokerId", "Adres", "Hyperlink", CURRENT_DATE, 'Onbekend', "Price", "Size"
-                    FROM "Property"
+                    SELECT broker_id, adres, hyperlink, CURRENT_DATE, 'Onbekend', price, size
+                    FROM property
                     """
                 )
                 results = cursor.fetchall()
@@ -169,9 +170,9 @@ class DataAccess:
             with conn.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT "BrokerId", "Adres", "Hyperlink", CURRENT_DATE, 'Onbekend', "Price", "Size"
-                    FROM "Property"
-                    WHERE "NaamDorpStad" = %s
+                    SELECT broker_id, adres, hyperlink, CURRENT_DATE, 'Onbekend', price, size
+                    FROM property
+                    WHERE naam_dorp_stad = %s
                     """,
                     (location,),
                 )
@@ -196,9 +197,9 @@ class DataAccess:
             with conn.cursor() as cursor:
                 cursor.execute(
                     """
-                    UPDATE "Property"
-                    SET "Price" = %s, "Size" = %s
-                    WHERE "BrokerId" = %s AND "Adres" = %s
+                    UPDATE property
+                    SET price = %s, size = %s
+                    WHERE broker_id = %s AND adres = %s
                     """,
                     (prop.huurprijs, prop.oppervlakte, prop.makelaardij_id, prop.adres),
                 )
@@ -209,9 +210,9 @@ class DataAccess:
             with conn.cursor() as cursor:
                 cursor.execute(
                     """
-                    UPDATE "BrokerAgencies"
-                    SET "BrokerName" = %s, "Hyperlink" = %s
-                    WHERE "BrokerId" = %s
+                    UPDATE broker_agencies
+                    SET broker_name = %s, hyperlink = %s
+                    WHERE broker_id = %s
                     """,
                     (agency.naam, agency.link, agency.id),
                 )
@@ -223,8 +224,8 @@ class DataAccess:
             with conn.cursor() as cursor:
                 cursor.execute(
                     """
-                    DELETE FROM "Property"
-                    WHERE "BrokerId" = %s AND "Adres" = %s
+                    DELETE FROM property
+                    WHERE broker_id = %s AND adres = %s
                     """,
                     (makelaardij_id, adres),
                 )
@@ -236,16 +237,16 @@ class DataAccess:
                 # First remove all properties associated with this agency
                 cursor.execute(
                     """
-                    DELETE FROM "Property"
-                    WHERE "BrokerId" = %s
+                    DELETE FROM property
+                    WHERE broker_id = %s
                     """,
                     (agency_id,),
                 )
                 # Then remove the agency itself
                 cursor.execute(
                     """
-                    DELETE FROM "BrokerAgencies"
-                    WHERE "BrokerId" = %s
+                    DELETE FROM broker_agencies
+                    WHERE broker_id = %s
                     """,
                     (agency_id,),
                 )

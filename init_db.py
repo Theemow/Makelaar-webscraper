@@ -54,17 +54,34 @@ def init_database():
             port=DATABASE["port"],
         )
         connection.autocommit = True
-        cursor = connection.cursor()
+        cursor = connection.cursor()  # Create sequences first if they don't exist
+        cursor.execute(
+            """
+        CREATE SEQUENCE IF NOT EXISTS broker_agencies_broker_id_seq
+            INCREMENT 1
+            START 1
+            MINVALUE 1
+            MAXVALUE 2147483647
+            CACHE 1;
+
+        CREATE SEQUENCE IF NOT EXISTS property_property_id_seq
+            INCREMENT 1
+            START 1
+            MINVALUE 1
+            MAXVALUE 2147483647
+            CACHE 1;
+        """
+        )
 
         # Maak broker_agencies tabel aan
         cursor.execute(
             """
-        CREATE TABLE IF NOT EXISTS public."BrokerAgencies"
+        CREATE TABLE IF NOT EXISTS public.broker_agencies
         (
-            "BrokerId" integer NOT NULL DEFAULT nextval('"BrokerAgencies_BrokerId_seq"'::regclass),
-            "BrokerName" text COLLATE pg_catalog."default" NOT NULL,
-            "Hyperlink" text COLLATE pg_catalog."default" NOT NULL,
-            CONSTRAINT "BrokerAgencies_pkey" PRIMARY KEY ("BrokerId")
+            broker_id integer NOT NULL DEFAULT nextval('broker_agencies_broker_id_seq'::regclass),
+            broker_name text COLLATE pg_catalog."default" NOT NULL,
+            hyperlink text COLLATE pg_catalog."default" NOT NULL,
+            CONSTRAINT broker_agencies_pkey PRIMARY KEY (broker_id)
         )
         """
         )
@@ -72,17 +89,17 @@ def init_database():
         # Maak properties tabel aan
         cursor.execute(
             """
-        CREATE TABLE IF NOT EXISTS public."Property"
+        CREATE TABLE IF NOT EXISTS public.property
         (
-            "PropertyId" integer NOT NULL DEFAULT nextval('"Property_PropertyId_seq"'::regclass),
-            "BrokerId" integer,
-            "Adres" text COLLATE pg_catalog."default",
-            "Hyperlink" text COLLATE pg_catalog."default",
-            "Price" text COLLATE pg_catalog."default",
-            "Size" text COLLATE pg_catalog."default",
-            CONSTRAINT "Property_pkey" PRIMARY KEY ("PropertyId"),
-            CONSTRAINT "Broker" FOREIGN KEY ("BrokerId")
-                REFERENCES public."BrokerAgencies" ("BrokerId") MATCH SIMPLE
+            property_id integer NOT NULL DEFAULT nextval('property_property_id_seq'::regclass),
+            broker_id integer,
+            adres text COLLATE pg_catalog."default",
+            hyperlink text COLLATE pg_catalog."default",
+            price text COLLATE pg_catalog."default",
+            size text COLLATE pg_catalog."default",
+            CONSTRAINT property_pkey PRIMARY KEY (property_id),
+            CONSTRAINT broker FOREIGN KEY (broker_id)
+                REFERENCES public.broker_agencies (broker_id) MATCH SIMPLE
                 ON UPDATE NO ACTION
                 ON DELETE NO ACTION
         )
