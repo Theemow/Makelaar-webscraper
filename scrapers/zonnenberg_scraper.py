@@ -166,7 +166,7 @@ class ZonnenbergScraper(BaseScraper):
             Dictionary with attributes of the rental property.
         """
         try:
-            response = requests.get(property_url, headers=self.headers, timeout=30)
+            response = requests.get(property_url, headers=self.headers, timeout=15)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
         except (requests.RequestException, ValueError) as e:

@@ -64,12 +64,6 @@ class DittersScraper(BaseScraper):
             # Try alternative selector patterns if the primary one doesn't work
             property_items = soup.select('div[class*="template-row-link"]')
 
-        logger.info(
-            "Found %d properties on Ditters website (page %d)",
-            len(property_items),
-            page_num,
-        )
-
         for item in property_items:
             try:
                 # Initialize property data with default values

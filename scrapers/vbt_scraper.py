@@ -41,8 +41,6 @@ class VBTScraper(BaseScraper):
             "filter_properties": '{"city":"Veenendaal","radius":15,"address":"","priceRental":{"min":0,"max":0},"availablefrom":"","surface":"","rooms":0,"typeCategory":""}',
         }
 
-        self.logger.info(f"Initialized VBT scraper with base URL: {base_url}")
-
     def get_property_listings(self, page_num=1) -> List[Dict[str, str]]:
         """
         Get property listings from VBT Verhuurmakelaars.
@@ -57,11 +55,9 @@ class VBTScraper(BaseScraper):
         if page_num > 1:
             page_url = f"{self.base_url}/{page_num}"
 
-        self.logger.info(f"Scraping VBT page: {page_url}")
-
         try:
             response = requests.get(
-                page_url, headers=self.headers, cookies=self.cookies
+                page_url, headers=self.headers, cookies=self.cookies, timeout=15
             )
             response.raise_for_status()  # Raise error for bad responses
             soup = BeautifulSoup(response.text, "html.parser")
@@ -69,9 +65,6 @@ class VBTScraper(BaseScraper):
 
             # Find all property listings
             property_items = soup.select("a.property")
-            self.logger.info(
-                f"Found {len(property_items)} properties on page {page_num}"
-            )
 
             for item in property_items:
                 try:
@@ -155,12 +148,11 @@ class VBTScraper(BaseScraper):
         Returns:
             Dictionary with property details
         """
-        self.logger.info(f"Getting details for property: {property_url}")
         details = {}
 
         try:
             response = requests.get(
-                property_url, headers=self.headers, cookies=self.cookies
+                property_url, headers=self.headers, cookies=self.cookies, timeout=15
             )
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")

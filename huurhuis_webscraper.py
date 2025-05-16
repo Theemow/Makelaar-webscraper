@@ -74,9 +74,6 @@ def run_scraper_proces():
     log_service = LogService()
     logger = get_logger("HuurhuisWebscraper")
 
-    # Log application start
-    log_service.log_app_start()
-
     # Initialiseer de database-verbinding
     db = DataAccess()
 
@@ -129,28 +126,19 @@ def run_scraper_proces():
 
     # Set main thread name for better logging
     threading.current_thread().name = "MainThread"
-    logger.info("Starting multithreaded scraper process")
 
     # Process brokers in parallel and gather results
     # Use max_workers based on number of brokers - for 4 brokers, use 4 threads
     max_workers = len(makelaars)
-    logger.info(
-        f"Processing {len(makelaars)} brokers with {max_workers} worker threads"
-    )
 
     alle_nieuwe_properties, alle_verwijderde_properties = (
         communicatie.parallel_process_brokers(makelaars, max_workers=max_workers)
     )
 
     # After all scrapers have completed, synchronously apply database updates
-    logger.info("All scrapers finished. Applying database updates synchronously...")
     communicatie.apply_database_updates(
         alle_nieuwe_properties, alle_verwijderde_properties
     )
-
-    # Toon resultaten
-    logger.info(f"Total new properties: {len(alle_nieuwe_properties)}")
-    logger.info(f"Total removed properties: {len(alle_verwijderde_properties)}")
 
     # Verstuur mail met nieuwe woningen
     if alle_nieuwe_properties:

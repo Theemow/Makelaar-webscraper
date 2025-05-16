@@ -90,7 +90,6 @@ class InterHouseScraper(BaseScraper):
                     # Fall back to direct Chrome driver instantiation
                     self.driver = webdriver.Chrome(options=options)
 
-                self.logger.info("Selenium WebDriver initialized successfully")
             except Exception as e:
                 self.logger.error(f"Error initializing Selenium WebDriver: {e}")
                 self.driver = None
@@ -115,7 +114,6 @@ class InterHouseScraper(BaseScraper):
         Returns:
             BeautifulSoup object with the rendered HTML content, or None if an error occurs.
         """
-        self.logger.info("Retrieving page with Selenium: %s", url)
 
         # If Selenium is not available, fall back to the base method
         if not SELENIUM_AVAILABLE:
@@ -161,7 +159,6 @@ class InterHouseScraper(BaseScraper):
         except Exception as e:
             self.logger.error("Error retrieving %s with Selenium: %s", url, e)
             # As a fallback, try the regular requests method
-            self.logger.info("Falling back to regular requests method")
             return super().get_page_content(url)
 
     def get_property_listings(self, page_num: int = 1) -> List[Dict[str, str]]:
@@ -191,13 +188,6 @@ class InterHouseScraper(BaseScraper):
 
         # Find all property items
         property_items = soup.select("div.c-result-item.building-result")
-
-        self.logger.info(
-            "Found %d properties on InterHouse website for %s (page %d)",
-            len(property_items),
-            self.location,
-            page_num,
-        )
 
         for item in property_items:
             try:

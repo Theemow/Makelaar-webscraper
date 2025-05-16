@@ -67,7 +67,7 @@ class Connector:
             Tuple containing (nieuwe_properties, verwijderde_properties)
         """
         thread_name = threading.current_thread().name
-        logger.info("Verwerken van makelaar: %s op thread %s", broker_naam, thread_name)
+        logger.info("Verwerken van makelaar begonnen")
 
         # 1. Controleer of de broker bestaat, zo niet maak deze aan
         broker = self.db.get_broker_agency_by_name(broker_naam)
@@ -77,7 +77,7 @@ class Connector:
                     f"Broker URL is required for new broker: {broker_naam}"
                 )
 
-            logger.info("Makelaar %s bestaat nog niet, wordt aangemaakt", broker_naam)
+            logger.info("Makelaar wordt aangemaakt")
             # We gebruiken de BrokerAgency class uit het notebook via een factory function
             broker = self._create_broker_agency(None, broker_naam, broker_url)
             broker_id = self.db.create_new_broker_agency(broker)
@@ -88,11 +88,6 @@ class Connector:
 
         # 3. Scrape alle properties van de website
         scraped_properties = self._scrape_properties(scraper)
-        logger.info(
-            "Makelaar: %s| Gevonden properties: %d",
-            broker_naam,
-            len(scraped_properties),
-        )
 
         # 4. Haal alle bestaande properties op uit de database
         db_properties = self.db.get_properties_for_broker(broker.id)
@@ -341,9 +336,12 @@ class Connector:
             if unique_key not in scraped_unique_keys:
                 verwijderde_properties.append(prop)
 
-        logger.info("Nieuwe properties: %d", len(nieuwe_properties))
-        logger.info("Bestaande properties: %d", len(bestaande_properties))
-        logger.info("Te verwijderen properties: %d", len(verwijderde_properties))
+        logger.info(
+            "Nieuwe properties: %d, Bestaande properties: %d, Te verwijderen properties: %d",
+            len(nieuwe_properties),
+            len(bestaande_properties),
+            len(verwijderde_properties),
+        )
 
         return nieuwe_properties, bestaande_properties, verwijderde_properties
 
@@ -470,14 +468,6 @@ class Connector:
                 recipients, self.nieuwe_listings
             )
 
-            # Log email sending results
-            if isinstance(recipients, str):
-                recipients_list = [recipients]
-            else:
-                recipients_list = recipients
-
-            self.log_service.log_email_sent(mail_success, recipients_list)
-
             return mail_success
         except (ValueError, AttributeError) as e:
             logger.error("Fout bij het versturen van de e-mail: %s", e)
@@ -573,12 +563,6 @@ def main():
     # Apply database updates synchronously
     communicatie.apply_database_updates(
         alle_nieuwe_properties, alle_verwijderde_properties
-    )
-
-    # Log resultaten
-    logger.info("Totaal aantal nieuwe properties: %d", len(alle_nieuwe_properties))
-    logger.info(
-        "Totaal aantal verwijderde properties: %d", len(alle_verwijderde_properties)
     )
 
     # Verstuur e-mail met nieuwe listings

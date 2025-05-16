@@ -19,9 +19,6 @@ class VastgoedNederlandScraper(BaseScraper):
         """
         super().__init__("https://aanbod.vastgoednederland.nl")
         self.location = location
-        self.logger.info(
-            f"Initialized VastgoedNederland scraper for location: {location}"
-        )
 
     def get_property_listings(self, page_num: int = 1) -> List[Dict[str, str]]:
         """Retrieve rental properties from the VastgoedNederland website.
@@ -39,8 +36,6 @@ class VastgoedNederlandScraper(BaseScraper):
         if page_num > 1:
             url += f"&p={page_num}"
 
-        self.logger.info(f"Fetching VastgoedNederland listings page {page_num}: {url}")
-
         soup = self.get_page_content(url)
         if not soup:
             self.logger.warning(f"Failed to retrieve content from {url}")
@@ -50,10 +45,6 @@ class VastgoedNederlandScraper(BaseScraper):
 
         # Find all property items - they are in div.col-12.col-sm-6.col-lg-4 elements
         property_items = soup.select("div.col-12.col-sm-6.col-lg-4")
-
-        self.logger.info(
-            f"Found {len(property_items)} properties on VastgoedNederland page {page_num}"
-        )
 
         for item in property_items:
             try:
@@ -130,7 +121,6 @@ class VastgoedNederlandScraper(BaseScraper):
         Returns:
             Dictionary with attributes of the rental property.
         """
-        self.logger.info(f"Retrieving property details from: {property_url}")
 
         soup = self.get_page_content(property_url)
         if not soup:

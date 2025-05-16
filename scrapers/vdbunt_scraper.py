@@ -44,8 +44,6 @@ class VdBuntScraper(BaseScraper):
         # The website shows properties in li.al2woning.aanbodEntry elements
         property_items = soup.select("li.al2woning.aanbodEntry")
 
-        logger.info("Found %d properties on VdBunt website", len(property_items))
-
         for item in property_items:
             try:
                 # Get the link to the property
@@ -164,7 +162,4 @@ class VdBuntScraper(BaseScraper):
         Returns:
             List of all found rental properties
         """
-        logger.info(
-            "VdBunt scraper only processes first page since pagination is not supported"
-        )
         return super().get_all_listings(max_pages=1)

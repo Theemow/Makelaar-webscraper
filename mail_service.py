@@ -144,9 +144,6 @@ class MailService:
                 server.login(self.sender_email, self.sender_password)
                 server.send_message(msg)
 
-            logger.info(
-                f"E-mail succesvol verzonden naar {len(recipients)} ontvanger(s)."
-            )
             return True
 
         except (smtplib.SMTPException, ConnectionError, ValueError) as e:

@@ -49,8 +49,7 @@ class BaseScraper(ABC):
             BeautifulSoup object with the HTML content, or None if an error occurs.
         """
         try:
-            self.logger.info("Retrieving page: %s", url)
-            response = requests.get(url, headers=self.headers, timeout=30)
+            response = requests.get(url, headers=self.headers, timeout=15)
             response.raise_for_status()
             return BeautifulSoup(response.text, "html.parser")
         except requests.exceptions.RequestException as e:
@@ -109,12 +108,8 @@ class BaseScraper(ABC):
 
         for page in range(1, max_pages + 1):
             try:
-                self.logger.info("Processing page %d", page)
                 page_listings = self.get_property_listings(page)
                 if not page_listings:
-                    self.logger.info(
-                        "No more results found on page %d. Stopping.", page
-                    )
                     break
 
                 # Check for duplicate listings by address
@@ -131,25 +126,13 @@ class BaseScraper(ABC):
 
                 # If all listings on this page are duplicates, stop scraping
                 if duplicate_count == len(page_listings):
-                    self.logger.info(
-                        "All %d listings on page %d are duplicates. Stopping pagination.",
-                        duplicate_count,
-                        page,
-                    )
                     break
 
                 # Add only unique listings to our results
                 all_listings.extend(unique_listings)
-                self.logger.info(
-                    "Page: %d | Found new: %d | Duplicates: %d",
-                    page,
-                    len(unique_listings),
-                    duplicate_count,
-                )
 
             except (requests.RequestException, ValueError, KeyError) as e:
                 self.logger.error("Error processing page %d: %s", page, e)
                 break
 
-        self.logger.info("Total properties found: %d", len(all_listings))
         return all_listings
