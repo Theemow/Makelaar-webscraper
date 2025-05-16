@@ -3,12 +3,12 @@ version: '3.8'
 services:  
   webscraper:
     build: .
-    container_name: huurhuis-webscraper
+    container_name: huurhuis-webscraper    
     volumes:
       - ./logs:/app/logs
       - ./config.py:/app/config.py
       - ./crontab:/etc/cron.d/huurhuis_crontab
-      - ./start.sh:/app/start.sh
+      - ./start.sh:/app/start.sh:ro
     depends_on:
       postgres:
         condition: service_healthy

@@ -64,8 +64,7 @@ RUN mkdir -p /app/logs && chmod 777 /app/logs
 
 # Install crontab
 COPY crontab /etc/cron.d/huurhuis_crontab
-RUN chmod 0644 /etc/cron.d/huurhuis_crontab && \
-    crontab /etc/cron.d/huurhuis_crontab
+RUN chmod 0644 /etc/cron.d/huurhuis_crontab
 
 # Create a startup script
 COPY start.sh /app/start.sh
