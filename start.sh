@@ -21,5 +21,5 @@ python /app/huurhuis_webscraper.py
 
 # Start cron in foreground (this keeps the container running)
 echo "Starting cron service..."
-echo "Webscraper will run daily at 12:00 and 19:00"
+echo "Webscraper will run daily at 12:00 and 18:00"
 cron -f
