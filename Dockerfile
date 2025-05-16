@@ -10,12 +10,32 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     TZ=Europe/Amsterdam
 
-# Install PostgreSQL client tools, cron and other dependencies
+# Install PostgreSQL client tools, cron, Chrome dependencies and other dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     build-essential \
     libpq-dev \
     cron \
+    wget \
+    gnupg \
+    unzip \
+    # Chrome dependencies
+    xvfb \
+    libxi6 \
+    libgconf-2-4 \
+    libnss3 \
+    libgdk-pixbuf2.0-0 \
+    libgtk-3-0 \
+    libxss1 \
+    libasound2 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Chrome
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -31,6 +51,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # For JavaScript-heavy sites (optional)
 RUN pip install --no-cache-dir playwright \
     && playwright install --with-deps chromium
+
+# Ensure Selenium and webdriver-manager are correctly installed
+RUN pip install --no-cache-dir selenium webdriver-manager \
+    && echo "export PATH=/usr/local/bin:$PATH" >> /etc/profile
 
 # Copy application code
 COPY . .

@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Set Docker environment variable for detection in code
+export DOCKER_ENVIRONMENT=true
+
 # Initialize the database
 echo "Initializing database..."
 python /app/init_db.py

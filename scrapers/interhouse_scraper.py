@@ -11,11 +11,11 @@ from urllib.parse import urljoin, parse_qs, urlparse
 from bs4 import BeautifulSoup
 from scrapers.base_scraper import BaseScraper
 
-# Conditional import of Selenium
+# Import our Selenium helper module
+from scrapers.selenium_helper import create_chrome_driver, quit_driver
+
+# Import Selenium components
 try:
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
-    from selenium.webdriver.chrome.service import Service
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support import expected_conditions as EC
     from selenium.webdriver.support.ui import WebDriverWait
@@ -71,24 +71,11 @@ class InterHouseScraper(BaseScraper):
 
         if SELENIUM_AVAILABLE:
             try:
-                # Set up Chrome options for headless browsing
-                options = Options()
-                options.add_argument("--headless")
-                options.add_argument("--disable-gpu")
-                options.add_argument("--no-sandbox")
-                options.add_argument("--disable-dev-shm-usage")
-                options.add_argument(f"user-agent={self.headers['User-Agent']}")
+                # Use our custom helper to create a driver that works in both dev and Docker environments
+                self.driver = create_chrome_driver(headless=True)
 
-                # Try to use webdriver-manager for Chrome driver installation
-                try:
-                    from webdriver_manager.chrome import ChromeDriverManager
-                    from selenium.webdriver.chrome.service import Service
-
-                    service = Service(ChromeDriverManager().install())
-                    self.driver = webdriver.Chrome(service=service, options=options)
-                except ImportError:
-                    # Fall back to direct Chrome driver instantiation
-                    self.driver = webdriver.Chrome(options=options)
+                if self.driver is None:
+                    self.logger.error("Failed to create Chrome WebDriver using helper")
 
             except Exception as e:
                 self.logger.error(f"Error initializing Selenium WebDriver: {e}")
