@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  webscraper:
+    build: .
+    container_name: huurhuis-webscraper
+    volumes:
+      - ./logs:/app/logs
+      - ./config.py:/app/config.py
+    depends_on:
+      - postgres
+    environment:
+      - TZ=Europe/Amsterdam
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:14
+    container_name: huurhuis-postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=HuurhuizenWebscraper
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
