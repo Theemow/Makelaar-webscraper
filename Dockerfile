@@ -10,11 +10,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     TZ=Europe/Amsterdam
 
-# Install PostgreSQL client tools and other dependencies
+# Install PostgreSQL client tools, cron and other dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     build-essential \
     libpq-dev \
+    cron \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -37,5 +38,14 @@ COPY . .
 # Create logs directory
 RUN mkdir -p /app/logs && chmod 777 /app/logs
 
-# Command to run the application
-CMD python init_db.py && python huurhuis_webscraper.py
+# Install crontab
+COPY crontab /etc/cron.d/huurhuis_crontab
+RUN chmod 0644 /etc/cron.d/huurhuis_crontab && \
+    crontab /etc/cron.d/huurhuis_crontab
+
+# Create a startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+# Command to run the application with cron
+CMD ["/app/start.sh"]
