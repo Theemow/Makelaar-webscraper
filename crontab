@@ -1,2 +1,2 @@
-# Run the webscraper at 12:00 and 19:00 every day
-20 12,19 * * * cd ~/Dev/MakelaarWebscraper/Makelaar-webscraper && python huurhuis_webscraper.py >> logs/cron.log 2>&1
+# Run the webscraper inside Docker container at 12:00 and 18:00 every day
+40 12,19 * * * docker exec huurhuis-webscraper python /app/huurhuis_webscraper.py >> ~/Dev/MakelaarWebscraper/Makelaar-webscraper/logs/cron.log 2>&1
