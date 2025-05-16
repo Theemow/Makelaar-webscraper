@@ -1,6 +1,7 @@
 version: '3.8'
 
-services:  webscraper:
+services:  
+  webscraper:
     build: .
     container_name: huurhuis-webscraper
     volumes:
