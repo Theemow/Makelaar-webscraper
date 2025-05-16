@@ -34,20 +34,15 @@ class ZonnenbergScraper(BaseScraper):
             "Accept-Language": "nl,en-US;q=0.7,en;q=0.3",
         }
 
-    def get_property_listings(self, page_num: int = 1) -> List[Dict[str, str]]:
+    def get_property_listings(self) -> List[Dict[str, str]]:
         """Retrieve rental properties from the Zonnenberg website.
-
-        Args:
-            page_num: Page number to retrieve
 
         Returns:
             List of dictionaries with rental property attributes.
         """
-        # Check if there's pagination on the site
-        if page_num > 1:
-            url = f"{self.base_url}/woningaanbod/huur/page/{page_num}/"
-        else:
-            url = f"{self.base_url}/woningaanbod/huur/"
+
+        # Zonnenberg loads all properties on a single page
+        url = f"{self.base_url}/woningaanbod/huur/"
 
         # Gebruik een eigen requests sessie om meer controle te hebben
         session = requests.Session()
