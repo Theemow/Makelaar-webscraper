@@ -7,10 +7,9 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./config.py:/app/config.py
-      - /var/run/docker.sock:/var/run/docker.sock  # Voeg deze regel toe
-    user: root  # Of gebruiker met docker socket rechten
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       - TZ=Europe/Amsterdam
     restart: unless-stopped
@@ -26,6 +25,11 @@ services:
       - POSTGRES_DB=HuurhuizenWebscraper
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
 volumes:
