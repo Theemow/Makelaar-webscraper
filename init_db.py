@@ -59,11 +59,12 @@ def init_database():
         # Maak broker_agencies tabel aan
         cursor.execute(
             """
-        CREATE TABLE IF NOT EXISTS broker_agencies (
-            id SERIAL PRIMARY KEY,
-            naam VARCHAR(255) NOT NULL,
-            website VARCHAR(255) NOT NULL,
-            laatste_verwerking TIMESTAMP
+        CREATE TABLE IF NOT EXISTS public."BrokerAgencies"
+        (
+            "BrokerId" integer NOT NULL DEFAULT nextval('"BrokerAgencies_BrokerId_seq"'::regclass),
+            "BrokerName" text COLLATE pg_catalog."default" NOT NULL,
+            "Hyperlink" text COLLATE pg_catalog."default" NOT NULL,
+            CONSTRAINT "BrokerAgencies_pkey" PRIMARY KEY ("BrokerId")
         )
         """
         )
@@ -71,17 +72,19 @@ def init_database():
         # Maak properties tabel aan
         cursor.execute(
             """
-        CREATE TABLE IF NOT EXISTS properties (
-            id SERIAL PRIMARY KEY,
-            adres VARCHAR(255) NOT NULL,
-            naam_dorp_stad VARCHAR(255),
-            huurprijs VARCHAR(255),
-            oppervlakte VARCHAR(255),
-            link VARCHAR(512),
-            broker_agency_id INTEGER REFERENCES broker_agencies(id),
-            datum_toegevoegd DATE DEFAULT CURRENT_DATE,
-            is_nieuw BOOLEAN DEFAULT TRUE,
-            CONSTRAINT unique_property UNIQUE (adres, broker_agency_id)
+        CREATE TABLE IF NOT EXISTS public."Property"
+        (
+            "PropertyId" integer NOT NULL DEFAULT nextval('"Property_PropertyId_seq"'::regclass),
+            "BrokerId" integer,
+            "Adres" text COLLATE pg_catalog."default",
+            "Hyperlink" text COLLATE pg_catalog."default",
+            "Price" text COLLATE pg_catalog."default",
+            "Size" text COLLATE pg_catalog."default",
+            CONSTRAINT "Property_pkey" PRIMARY KEY ("PropertyId"),
+            CONSTRAINT "Broker" FOREIGN KEY ("BrokerId")
+                REFERENCES public."BrokerAgencies" ("BrokerId") MATCH SIMPLE
+                ON UPDATE NO ACTION
+                ON DELETE NO ACTION
         )
         """
         )
