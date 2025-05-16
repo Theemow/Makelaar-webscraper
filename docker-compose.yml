@@ -2,16 +2,18 @@ version: '3.8'
 
 services:
   webscraper:
-    build: .
-    container_name: huurhuis-webscraper
-    volumes:
-      - ./logs:/app/logs
-      - ./config.py:/app/config.py
-    depends_on:
-      - postgres
-    environment:
-      - TZ=Europe/Amsterdam
-    restart: unless-stopped
+  build: .
+  container_name: huurhuis-webscraper
+  volumes:
+    - ./logs:/app/logs
+    - ./config.py:/app/config.py
+    - /var/run/docker.sock:/var/run/docker.sock  # Voeg deze regel toe
+  user: root  # Of gebruiker met docker socket rechten
+  depends_on:
+    - postgres
+  environment:
+    - TZ=Europe/Amsterdam
+  restart: unless-stopped
 
   postgres:
     image: postgres:14
