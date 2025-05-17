@@ -23,12 +23,12 @@ class MailService:
             sender_email: Het e-mailadres van de afzender (standaard uit config.py)
             sender_password: Het wachtwoord of de app-specifieke code voor het e-mailadres (standaard uit config.py)
             smtp_server: De SMTP-server (standaard uit config.py)
-            smtp_port: De SMTP-poort (standaard uit config.py)
+            smtp_port: De SMTP-poort (standaard uit webscraper_config.py)
         """
         # Import config here to avoid circular imports
-        from config import EMAIL
+        from webscraper_config import EMAIL
 
-        # Use values from config.py as defaults
+        # Use values from webscraper_config.py as defaults
         self.sender_email = sender_email or EMAIL["sender_email"]
         self.sender_password = sender_password or EMAIL["sender_password"]
         self.smtp_server = smtp_server or EMAIL["smtp_server"]
@@ -52,9 +52,9 @@ class MailService:
             return True
 
         # Import config here to avoid circular imports
-        from config import EMAIL
+        from webscraper_config import EMAIL
 
-        # Use recipients from config.py if not provided
+        # Use recipients from webscraper_config.py if not provided
         if recipients is None:
             recipients = EMAIL["recipients"]
 
@@ -181,9 +181,9 @@ class MailService:
             bool: True als de e-mail succesvol is verzonden, anders False
         """
         # Import config here to avoid circular imports
-        from config import EMAIL
+        from webscraper_config import EMAIL
 
-        # Use recipients from config.py if not provided
+        # Use recipients from webscraper_config.py if not provided
         if recipients is None:
             recipients = EMAIL["recipients"]
 

@@ -30,9 +30,9 @@ class Property:
 
 class DataAccess:
     def __init__(self):
-        """Initialize database connection using settings from config.py."""
+        """Initialize database connection using settings from webscraper_config.py."""
         # Import config here to avoid circular imports
-        from config import DATABASE
+        from webscraper_config import DATABASE
 
         self.connection_params = {
             "dbname": DATABASE["dbname"],

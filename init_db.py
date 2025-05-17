@@ -7,7 +7,7 @@ import psycopg2
 from psycopg2 import sql
 import logging
 import time
-from config import DATABASE
+from webscraper_config import DATABASE
 
 # Configureer logging
 logging.basicConfig(level=logging.INFO)

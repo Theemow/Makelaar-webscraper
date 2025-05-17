@@ -24,7 +24,7 @@ import logging
 from datetime import datetime
 
 # Import configuration
-from config import DATABASE, EMAIL
+from webscraper_config import DATABASE, EMAIL
 
 # Import mail service
 from mail_service import MailService

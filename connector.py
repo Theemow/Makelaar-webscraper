@@ -568,9 +568,9 @@ def main():
     # Verstuur e-mail met nieuwe listings
     if alle_nieuwe_properties:
         try:
-            # E-mailconfiguratie uit config.py halen
+            # E-mailconfiguratie uit webscraper_config.py halen
             try:
-                from config import EMAIL
+                from webscraper_config import EMAIL
 
                 sender_email = EMAIL["sender_email"]
                 sender_password = EMAIL["sender_password"]

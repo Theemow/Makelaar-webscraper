@@ -1,5 +1,5 @@
 # Ignore sensitive configuration files
-config.py
+webscraper_config.py
 
 # Python bytecode compiled files
 __pycache__/
