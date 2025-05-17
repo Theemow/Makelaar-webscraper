@@ -18,43 +18,78 @@ A Python application that scrapes rental property listings from various Dutch re
 - Sends email notifications with new rental properties
 - Comprehensive logging system for monitoring and troubleshooting
 - Supports multithreaded scraping for improved performance
+- Easy deployment with Docker and automatic scheduling
+- Support for JavaScript-heavy sites with Playwright or Selenium
 - Easily extendable for additional real estate websites
 
 ## Prerequisites
 
-- Python 3.8 or higher
+### For Local Development
+
+- Python 3.11 or higher
 - PostgreSQL database server
-- Required Python packages:
+- Required Python packages (all included in requirements.txt):
   - beautifulsoup4
   - requests
-  - psycopg2
-  - typing
-  - dataclasses
+  - psycopg2-binary
+  - typing-extensions
   - concurrent.futures (included in Python's standard library)
-  - For some scrapers (optional): playwright
+  - playwright or selenium (for JavaScript-heavy sites)
+  - jupyter and notebook (for testing with the notebook)
+
+### For Docker Deployment
+
+- Docker and Docker Compose
+- At least 2GB of free RAM
+- Persistent storage for PostgreSQL data and logs
 
 ## Installation
 
+### Standard Installation
+
 1. Clone this repository:
+
    ```bash
-   git clone https://github.com/yourusername/Huurhuis-webscraper.git
-   cd Huurhuis-webscraper
+   git clone https://github.com/username/Makelaar-webscraper.git
+   cd Makelaar-webscraper
    ```
 
 2. Install required dependencies:
+
    ```bash
-   pip install beautifulsoup4 requests psycopg2 typing_extensions
+   pip install -r requirements.txt
    ```
 
 3. Install optional dependencies for JavaScript-heavy sites:
+
    ```bash
-   pip install playwright
-   playwright install
+   playwright install --with-deps chromium
    ```
+
+### Docker Installation (Recommended)
+
+The project includes Docker support for easy deployment:
+
+1. Clone the repository and navigate to the project directory.
+
+2. Create a `webscraper_config.py` file with your configuration (see Configuration section below).
+
+3. Deploy with Docker Compose:
+
+   ```bash
+   docker-compose up -d
+   ```
+
+   This will:
+   
+   - Set up a PostgreSQL database container
+   - Build and run the webscraper container
+   - Configure automatic scheduling via cron (runs at 12:00 and 18:00 daily)
+   - Store logs in a persistent volume
 
 ## Configuration
 
-Create a `config.py` file in the root directory to manage all your credentials and settings:
+Create a `webscraper_config.py` file in the root directory to manage all your credentials and settings:
 
 ```python
 """
@@ -67,9 +102,12 @@ Do not share or commit this file to version control.
 EMAIL = {
     "sender_email": "your.email@gmail.com",  # Your Gmail address
     "sender_password": "your_app_password",  # Your Gmail App Password (not your regular password)
-    "recipients": ["recipient1@example.com", "recipient2@example.com"],  # List of email recipients
+    "recipients": [
+        "recipient1@example.com",
+        "recipient2@example.com",
+    ],  # List of email recipients
     "smtp_server": "smtp.gmail.com",
-    "smtp_port": 587
+    "smtp_port": 587,
 }
 
 # Database configuration
@@ -77,47 +115,67 @@ DATABASE = {
     "dbname": "HuurhuizenWebscraper",  # Name of the database
     "user": "postgres",  # Database user
     "password": "admin",  # Database password
-    "host": "localhost",  # Database host (usually localhost)
-    "port": "5432"  # Database port (default is 5432 for PostgreSQL)
+    "host": "postgres",  # For Docker: use service name / For local: use localhost
+    "port": "5432",  # Database port (default is 5432 for PostgreSQL)
 }
 ```
 
-**Important Notes:** 
+**Important Notes:**
+
 - For Gmail, you need to use an App Password, not your regular password. You can generate an App Password in your Google Account security settings.
-- The config.py file contains sensitive information and is included in .gitignore by default to prevent it from being committed to version control.
+- The webscraper_config.py file contains sensitive information and is included in .gitignore by default to prevent it from being committed to version control.
+- When using Docker, mount this file as a volume (see docker-compose.yml) or create a secure way to provide these credentials.
 
 ### Database Setup
 
-The application uses PostgreSQL as its database system. Before running the application:
+#### Local Setup
+
+If you're running the application locally (without Docker):
 
 1. Install PostgreSQL if you haven't already
 2. Create a new database called "HuurhuizenWebscraper"
-3. Create the required tables by running the SQL queries below:
+3. Use the init_db.py script to create the necessary schema:
+
+   ```bash
+   python init_db.py
+   ```
+
+#### Docker Setup
+
+When using Docker Compose, the database is automatically:
+
+1. Created with the correct name
+2. Initialized on first startup
+3. Persisted through a Docker volume
+
+The database schema is created using the init_db.py script, which creates the following structure:
 
 ```sql
-CREATE TABLE "BrokerAgencies" (
-    "BrokerId" SERIAL PRIMARY KEY,
-    "BrokerName" TEXT NOT NULL,
-    "Hyperlink" TEXT NOT NULL
+CREATE TABLE broker_agencies (
+    broker_id SERIAL PRIMARY KEY,
+    broker_name TEXT NOT NULL,
+    hyperlink TEXT NOT NULL
 );
 
-CREATE TABLE "Property" (
-    "PropertyId" SERIAL PRIMARY KEY,
-    "BrokerId" INT REFERENCES "BrokerAgencies"("BrokerId"),
-    "Adres" TEXT NOT NULL,
-    "Hyperlink" TEXT NOT NULL,
-    "ToegevoegdOp" DATE NOT NULL,
-    "NaamDorpStad" TEXT NOT NULL,
-    "Price" TEXT NOT NULL,
-    "Size" TEXT NOT NULL
+CREATE TABLE property (
+    property_id SERIAL PRIMARY KEY,
+    broker_id INT REFERENCES broker_agencies(broker_id),
+    adres TEXT NOT NULL,
+    hyperlink TEXT NOT NULL,
+    toegevoegd_op DATE NOT NULL,
+    naam_dorp_stad TEXT NOT NULL,
+    price TEXT NOT NULL,
+    size TEXT NOT NULL
 );
 ```
 
-Note: The database schema matches the dataclasses defined in `data_access.py`. If you modify the dataclasses, make sure to update your database schema accordingly.
+Note: The database schema matches the structure in `data_access.py`. If you modify the data models, make sure to update the init_db.py schema accordingly.
 
 ## Usage
 
-You can now run the application as a standalone Python script:
+### Local Execution
+
+You can run the application as a standalone Python script:
 
 ```bash
 python huurhuis_webscraper.py
@@ -129,7 +187,22 @@ For testing individual scrapers or features, you can use the provided Jupyter No
 jupyter notebook huurhuis_webscraper_tests.ipynb
 ```
 
-The application will:
+### Docker Execution
+
+When running with Docker Compose:
+
+```bash
+# Start the containers
+docker-compose up -d
+
+# View logs
+docker logs huurhuis-webscraper
+
+# Run the scraper manually (if needed)
+docker exec huurhuis-webscraper python /app/huurhuis_webscraper.py
+```
+
+The application (whether run locally or in Docker) will:
 
 1. Initialize the database and logger
 2. Connect to each configured real estate website
@@ -137,6 +210,8 @@ The application will:
 4. Compare newly scraped data with existing database records
 5. Update the database with new and removed properties
 6. Send email notifications if any new properties are found
+
+When run in Docker, the application automatically executes twice daily at 12:00 and 18:00 via cron.
 
 ## How It Works
 
@@ -165,11 +240,19 @@ The application will:
 
 - `huurhuis_webscraper.py`: Main Python script that ties everything together and contains execution code
 - `huurhuis_webscraper_tests.ipynb`: Jupyter notebook for testing individual components
-- `config.py`: Configuration settings for email notifications and database connection
+- `webscraper_config.py`: Configuration settings for email notifications and database connection
 - `connector.py`: Main coordination module between scrapers and database
 - `data_access.py`: Contains classes for database operations (DataAccess, BrokerAgency, Property)
 - `mail_service.py`: Handles email notifications for new property listings
 - `log_service.py`: Provides logging functionality throughout the application
+- `init_db.py`: Script to initialize the database schema
+
+### Docker Deployment Files
+
+- `Dockerfile`: Defines the container image for the webscraper application
+- `docker-compose.yml`: Orchestrates the deployment of both webscraper and PostgreSQL containers
+- `crontab`: Defines the schedule for automatic execution in the container
+- `start.sh`: Container startup script that initializes the database and starts the cron service
 
 ### Scraper System
 
@@ -208,15 +291,27 @@ The project uses a modular scraper system where each website has its own special
 
 - **huurhuis_webscraper_tests.ipynb**: Contains tests and examples for the different components of the system. Useful for debugging individual scrapers or testing new functionality.
 
-- **config.py**: Contains configuration variables for database connection and email sending. It's organized as two dictionaries: `DATABASE` for PostgreSQL connection parameters and `EMAIL` for SMTP settings.
+- **webscraper_config.py**: Contains configuration variables for database connection and email sending. It's organized as two dictionaries: `DATABASE` for PostgreSQL connection parameters and `EMAIL` for SMTP settings.
 
 - **connector.py**: Serves as the communication layer between scrapers and the database. It handles the logic for comparing new and existing listings, determining what's been added or removed, and coordinating updates.
 
 - **data_access.py**: Provides all database-related functionality through the `DataAccess` class, including connection management and CRUD operations. It also contains the data models `BrokerAgency` and `Property`.
 
-- **mail_service.py**: Handles the email notification system. It connects to the SMTP server defined in config.py and formats/sends emails with information about new rental properties.
+- **mail_service.py**: Handles the email notification system. It connects to the SMTP server defined in webscraper_config.py and formats/sends emails with information about new rental properties.
 
 - **log_service.py**: Provides standardized logging functionality across the application, creating timestamped log files and offering different log levels.
+
+- **init_db.py**: Script that handles database initialization, creating required tables if they don't exist, which is especially useful in Docker environments where the database starts fresh.
+
+### Docker-Related Files
+
+- **Dockerfile**: Defines how to build the Docker image for the application, including the Python environment, Chrome browser, and other dependencies.
+
+- **docker-compose.yml**: Configures the multi-container setup with PostgreSQL and the webscraper service, defining how they interact, what volumes to mount, and environment variables.
+
+- **crontab**: Contains the schedule for when the webscraper should run automatically (currently set to 12:00 and 18:00 daily).
+
+- **start.sh**: Shell script that runs when the Docker container starts, initializing the database, running an initial scrape, and starting the cron service.
 
 ### Supporting Files
 
@@ -312,22 +407,42 @@ To modify the database schema:
 
 ### Scheduled Execution
 
-Now that the application is a standalone Python script, it can be easily scheduled to run automatically:
+The application can be scheduled to run automatically:
 
-- On Linux/Unix: Use crontab to schedule the execution at specified intervals:
+#### Docker (Recommended)
+
+When deployed using the provided Docker setup, the application is already configured to run automatically:
+
+- The `crontab` file is automatically installed in the container
+- Scheduled runs occur at 12:00 and 18:00 daily
+- Logs are stored in the `/app/logs` directory which is mounted as a volume
+
+To modify the schedule:
+
+1. Edit the `crontab` file in the project root
+2. Rebuild and restart your containers:
+
+   ```bash
+   docker-compose down
+   docker-compose up -d --build
+   ```
+
+#### Linux/Unix
+
+For a non-Docker deployment on Linux/Unix, use crontab to schedule the execution:
 
 ```bash
 # Run at 12:00 and 18:00 every day
 0 12,18 * * * cd /path/to/Makelaar-webscraper && python huurhuis_webscraper.py
 ```
 
-- On Windows: Use Task Scheduler to run the script at specified times:
+#### Windows
+
+For Windows systems, use Task Scheduler:
 
 1. Create a new task in Windows Task Scheduler
 2. Set the trigger to run at specific times (e.g., 12:00 and 18:00 daily)
 3. Set the action to start a program: `python` with arguments `C:\path\to\Makelaar-webscraper\huurhuis_webscraper.py`
-
-- For Docker environments: Use docker-compose with a cron service or schedule through Kubernetes CronJobs
 
 Recommended scheduling: Twice daily (around 12:00 and 18:00) to catch new listings
 
