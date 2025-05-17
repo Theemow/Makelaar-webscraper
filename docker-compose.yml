@@ -6,7 +6,6 @@ services:
     container_name: huurhuis-webscraper    
     volumes:
       - ./logs:/app/logs
-      - ./crontab:/etc/cron.d/huurhuis_crontab
       - /opt/secrets/webscraper_config.py:/app/webscraper_config.py:ro
     depends_on:
       postgres:
