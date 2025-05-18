@@ -1,7 +1,7 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime
+from datetime import datetime, timezone
 from collections import defaultdict
 
 # Import the central logging service
@@ -70,7 +70,7 @@ class MailService:
                 recipients
             )  # Meerdere ontvangers scheiden met komma's
             msg["Subject"] = (
-                f"Nieuwe Huurwoningen - {datetime.now().strftime('%d-%m-%Y %H:%M')}"
+                f"Nieuwe Huurwoningen - {datetime.now(timezone.utc).strftime('%d-%m-%Y %H:%M')}"
             )
 
             # Groepeer properties per makelaar
