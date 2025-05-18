@@ -2,11 +2,13 @@
 Logging service for the HuurhuisWebscraper application.
 
 This module provides a centralized logging service used throughout the application
-to ensure consistent logging to both console and file.
+to ensure consistent logging focused on stdout (standard Docker practice) with
+optional file logging when not running in Docker.
 """
 
 import logging
 import os
+import sys
 import threading
 from datetime import datetime
 from typing import List, Optional
@@ -16,7 +18,8 @@ class LogService:
     """
     Centralized logging service for the HuurhuisWebscraper application.
 
-    This class manages logging to both console and file with appropriate formatting.
+    This class manages logging to stdout (Docker-friendly) with optional file logging
+    when not running in Docker environment.
     """
 
     _instance = None
@@ -33,15 +36,6 @@ class LogService:
         if LogService._initialized:
             return
 
-        # Create logs directory if it doesn't exist
-        log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-
-        # Generate log filename with current timestamp
-        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_filename = os.path.join(log_dir, f"huurhuis_webscraper_{current_time}.log")
-
         # Set up root logger
         self.root_logger = logging.getLogger()
         self.root_logger.setLevel(logging.INFO)
@@ -50,25 +44,44 @@ class LogService:
         for handler in self.root_logger.handlers[:]:
             self.root_logger.removeHandler(handler)
 
-        # Create console handler with thread information
-        console_handler = logging.StreamHandler()
+        # Create console handler with thread information (Docker standard practice)
+        console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.INFO)
+
+        # Use JSON-like format for better parsing in container logging systems
         console_format = logging.Formatter(
-            "%(asctime)s - [%(threadName)s] - %(name)s - %(levelname)s - %(message)s"
+            '{"time": "%(asctime)s", "thread": "%(threadName)s", "name": "%(name)s", "level": "%(levelname)s", "message": "%(message)s"}'
         )
         console_handler.setFormatter(console_format)
 
-        # Create file handler for summary log with thread information
-        file_handler = logging.FileHandler(log_filename)
-        file_handler.setLevel(logging.INFO)
-        file_format = logging.Formatter(
-            "%(asctime)s - [%(threadName)s] - %(levelname)s - %(message)s"
-        )
-        file_handler.setFormatter(file_format)
-
-        # Add handlers to the root logger
+        # Add console handler to the root logger (always needed)
         self.root_logger.addHandler(console_handler)
-        self.root_logger.addHandler(file_handler)
+
+        # Add file logging only when not in Docker environment
+        is_docker = os.environ.get("DOCKER_ENVIRONMENT", "false").lower() == "true"
+
+        if not is_docker:
+            # Create logs directory if it doesn't exist (only for non-Docker environments)
+            log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
+
+            # Generate log filename with current timestamp
+            current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_filename = os.path.join(
+                log_dir, f"huurhuis_webscraper_{current_time}.log"
+            )
+
+            # Create file handler for summary log with thread information
+            file_handler = logging.FileHandler(log_filename)
+            file_handler.setLevel(logging.INFO)
+            file_format = logging.Formatter(
+                "%(asctime)s - [%(threadName)s] - %(levelname)s - %(message)s"
+            )
+            file_handler.setFormatter(file_format)
+
+            # Add file handler only in non-Docker environments
+            self.root_logger.addHandler(file_handler)
 
         # Set initialization flag
         LogService._initialized = True

@@ -4,9 +4,6 @@ set -e
 # Set Docker environment variable for detection in code
 export DOCKER_ENVIRONMENT=true
 
-# Create log directory if it doesn't exist
-mkdir -p /app/logs
-
 # Set proper permissions for crontab
 chmod 0644 /etc/cron.d/huurhuis_crontab
 crontab /etc/cron.d/huurhuis_crontab

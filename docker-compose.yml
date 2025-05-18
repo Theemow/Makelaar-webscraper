@@ -5,14 +5,19 @@ services:
     build: .
     container_name: huurhuis-webscraper    
     volumes:
-      - ./logs:/app/logs
       - /opt/secrets/webscraper_config.py:/app/webscraper_config.py:ro
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       - TZ=Europe/Amsterdam
+      - DOCKER_ENVIRONMENT=true
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   postgres:
     image: postgres:14
