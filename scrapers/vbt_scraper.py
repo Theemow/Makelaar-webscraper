@@ -68,6 +68,12 @@ class VBTScraper(BaseScraper):
 
             for item in property_items:
                 try:
+                    # Check if property is already rented ("Verhuurd")
+                    rented_status = item.select_one("span.status.rentinuse")
+                    if rented_status and "Verhuurd" in rented_status.text:
+                        # Skip this property as it's already rented
+                        continue
+
                     property_data = {}
 
                     # Extract the relative URL and convert to absolute
