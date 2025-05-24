@@ -35,7 +35,6 @@ from data_access import DataAccess, BrokerAgency, Property
 # Import logging service
 from log_service import LogService, get_logger
 
-
 # Importeer de connector
 from connector import Connector
 

@@ -69,9 +69,12 @@ class VdBuntScraper(BaseScraper):
                 price_element = item.select_one(
                     "span.kenmerk.huurprijs span.kenmerkValue"
                 )
-                price = self.clean_text(price_element.text if price_element else None)
-
-                # Surface area - we look for the element with "woonoppervlakte" as attribute
+                price_text = self.clean_text(
+                    price_element.text if price_element else None
+                )
+                price_numeric = self.extract_rental_price(
+                    price_text
+                )  # Surface area - we look for the element with "woonoppervlakte" as attribute
                 area_element = item.select_one(
                     "span.kenmerk.woonoppervlakte span.kenmerkValue"
                 )
@@ -82,7 +85,7 @@ class VdBuntScraper(BaseScraper):
                         "adres": address,
                         "link": property_url,
                         "naam_dorp_stad": location,
-                        "huurprijs": price,
+                        "huurprijs": price_numeric,
                         "oppervlakte": area,
                     }
                 )
@@ -131,9 +134,8 @@ class VdBuntScraper(BaseScraper):
             price_element = soup.select_one(
                 ".kenmerk.huurprijs .kenmerkValue, .obj-kenmerken.first .huurprijs .rechts"
             )
-            details["huurprijs"] = self.clean_text(
-                price_element.text if price_element else None
-            )
+            price_text = self.clean_text(price_element.text if price_element else None)
+            details["huurprijs"] = self.extract_rental_price(price_text)
 
             # Surface area - we adjust the selector for the detail page
             details["oppervlakte"] = "N/A"  # Default value

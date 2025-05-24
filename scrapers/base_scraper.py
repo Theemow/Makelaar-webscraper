@@ -69,6 +69,62 @@ class BaseScraper(ABC):
             return "N/A"
         return re.sub(r"\s+", " ", text).strip() or "N/A"
 
+    def extract_rental_price(self, price_text: str) -> int:
+        """Extract numeric rental price from text.
+
+        Args:
+            price_text: The text containing the rental price (e.g., "€ 1.250,- per maand")
+
+        Returns:
+            Integer representation of the rental price, or 0 if extraction fails.
+        """
+        if not price_text or price_text == "N/A":
+            return 0
+
+        try:
+            # Remove all non-numeric characters except for decimals and thousands separators
+            # Extract the first number sequence that could represent an amount
+            matches = re.search(
+                r"(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?|\d+)", price_text
+            )
+            if not matches:
+                self.logger.warning(
+                    "Could not extract rental price from: %s", price_text
+                )
+                return 0  # Get the matched price
+            price_str = matches.group(1)
+
+            # Check if the price has a decimal part (after the last comma or dot)
+            if "," in price_str or "." in price_str:
+                # In Dutch format, commas are used as decimal separators
+                # Replace dots as thousands separators first
+                price_str = price_str.replace(".", "")
+
+                # If there's a comma, it's likely a decimal separator
+                if "," in price_str:
+                    # Replace comma with dot (standard decimal in Python)
+                    parts = price_str.split(",")
+                    if (
+                        len(parts) > 1 and len(parts[1]) <= 2
+                    ):  # If it's cents (1 or 2 digits)
+                        # Handle as decimal
+                        price_str = parts[0] + "." + parts[1]
+                    else:
+                        # Treat as thousand separator
+                        price_str = price_str.replace(",", "")
+
+                # Convert to float first to handle decimals, then to int to get whole euros
+                return int(float(price_str))
+            else:
+                # No decimal part, just remove any remaining non-numeric characters
+                price_str = price_str.replace(".", "").replace(",", "")
+                return int(price_str)
+        except (ValueError, AttributeError) as e:
+            self.logger.error(
+                "Error extracting rental price from '%s': %s", price_text, e
+            )
+            return 0
+
     @abstractmethod
     def get_property_listings(self, page_num: int = 1) -> List[Dict[str, str]]:
         """Retrieve the properties of all rental properties from a page.

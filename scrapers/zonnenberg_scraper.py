@@ -113,7 +113,9 @@ class ZonnenbergScraper(BaseScraper):
 
                 # Price
                 price_element = item.select_one("span.price")
-                price = self.clean_text(price_element.text if price_element else "N/A")
+                price_text = self.clean_text(
+                    price_element.text if price_element else "N/A"
+                )
 
                 # Place - directe extractie uit het artikel
                 place_element = item.select_one("span.d-block.place")
@@ -127,12 +129,15 @@ class ZonnenbergScraper(BaseScraper):
                 area_element = item.select_one("span.dimension")
                 area = self.clean_text(area_element.text if area_element else "N/A")
 
-                # Create the property dictionary
+                # Extract numeric rental price
+                price_numeric = self.extract_rental_price(
+                    price_text
+                )  # Create the property dictionary
                 property_data = {
                     "adres": address,
                     "link": property_url,
                     "naam_dorp_stad": place,
-                    "huurprijs": price,
+                    "huurprijs": price_numeric,
                     "oppervlakte": area,
                 }
 
@@ -201,12 +206,11 @@ class ZonnenbergScraper(BaseScraper):
                 # Strip postcode (4 cijfers gevolgd door 2 letters)
                 details["naam_dorp_stad"] = re.sub(
                     r"^\d{4}\s*[A-Z]{2}\s*", "", location_text
-                )
-
-            # Get price
+                )  # Get price
             price_element = soup.select_one("span.price")
             if price_element:
-                details["huurprijs"] = self.clean_text(price_element.text)
+                price_text = self.clean_text(price_element.text)
+                details["huurprijs"] = self.extract_rental_price(price_text)
 
             # Get surface area
             area_element = soup.select_one("span.dimension")

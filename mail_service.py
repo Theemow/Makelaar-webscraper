@@ -112,7 +112,14 @@ class MailService:
                 for prop in properties:
                     adres = prop.get("adres", "Onbekend")
                     plaats = prop.get("naam_dorp_stad", "Onbekend")
-                    prijs = prop.get("huurprijs", "Onbekend")
+                    huurprijs = prop.get(
+                        "huurprijs", "Onbekend"
+                    )  # Format the price as "€ [price] p/m" if it's a number
+                    if isinstance(huurprijs, (int, float)) and huurprijs > 0:
+                        # Format with thousands separator (dot in Dutch format)
+                        prijs = f"€ {huurprijs:,.0f}".replace(",", ".") + " p/m"
+                    else:
+                        prijs = "Onbekend"
                     oppervlakte = prop.get("oppervlakte", "Onbekend")
                     link = prop.get("link", "#")
 

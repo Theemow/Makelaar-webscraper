@@ -85,12 +85,11 @@ class ParariusScraper(BaseScraper):
             return []
 
         for listing in listings:
-            try:
-                # Initialize property data
+            try:  # Initialize property data
                 property_data = {
                     "adres": "N/A",
                     "naam_dorp_stad": "N/A",
-                    "huurprijs": "N/A",
+                    "huurprijs": 0,
                     "oppervlakte": "N/A",
                     "link": "N/A",
                 }
@@ -105,12 +104,12 @@ class ParariusScraper(BaseScraper):
                 if city_elem:
                     property_data["naam_dorp_stad"] = self.clean_city_name(
                         city_elem.text
-                    )
-
-                # Extract price
+                    )  # Extract price
                 price_elem = listing.select_one(".listing-search-item__price")
                 if price_elem:
-                    property_data["huurprijs"] = self.clean_price_text(price_elem.text)
+                    price_text = self.clean_price_text(price_elem.text)
+                    # Store the numeric price directly
+                    property_data["huurprijs"] = self.extract_rental_price(price_text)
 
                 # Extract area - try both old and new format
                 area_elem = listing.select_one(
@@ -165,12 +164,13 @@ class ParariusScraper(BaseScraper):
             # Extract city/location
             location_elem = soup.select_one("div.listing-detail-summary__location")
             if location_elem:
-                details["naam_dorp_stad"] = self.clean_city_name(location_elem.text)
-
-            # Extract price
+                details["naam_dorp_stad"] = self.clean_city_name(
+                    location_elem.text
+                )  # Extract price
             price_elem = soup.select_one("span.listing-detail-summary__price")
             if price_elem:
-                details["huurprijs"] = self.clean_text(price_elem.text)
+                price_text = self.clean_text(price_elem.text)
+                details["huurprijs"] = self.extract_rental_price(price_text)
 
             # Extract surface area
             features = soup.select("ul.listing-features li")

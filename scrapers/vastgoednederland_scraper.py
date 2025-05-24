@@ -3,7 +3,6 @@ VastgoedNederland scraper module for scraping rental properties from the Vastgoe
 """
 
 from typing import Dict, List
-from urllib.parse import urljoin
 
 from scrapers.base_scraper import BaseScraper
 
@@ -38,14 +37,13 @@ class VastgoedNederlandScraper(BaseScraper):
 
         soup = self.get_page_content(url)
         if not soup:
-            self.logger.warning(f"Failed to retrieve content from {url}")
+            self.logger.warning("Failed to retrieve content from %s", url)
             return []
 
         listings = []
 
         # Find all property items - they are in div.col-12.col-sm-6.col-lg-4 elements
         property_items = soup.select("div.col-12.col-sm-6.col-lg-4")
-
         for item in property_items:
             try:
                 # Get the link element
@@ -74,15 +72,19 @@ class VastgoedNederlandScraper(BaseScraper):
 
                 # Get the rental price
                 price_element = figure.select_one("figcaption span.price")
-                price = self.clean_text(price_element.text if price_element else None)
+                price_text = self.clean_text(
+                    price_element.text if price_element else None
+                )
+                price_numeric = self.extract_rental_price(price_text)
 
                 # Get the surface area
                 area_element = figure.select_one(
                     "figcaption div.bottom ul li:first-child"
                 )
                 area = "N/A"
-                if area_element:
-                    # Extract just the area value, e.g., "120m²" from the element that contains an icon and the text
+                if (
+                    area_element
+                ):  # Extract just the area value, e.g., "120m²" from the element that contains an icon and the text
                     area_text = self.clean_text(area_element.text)
                     # The text might contain an icon class name, so we clean it up
                     area = area_text.replace("icon-meter", "").strip() or "N/A"
@@ -90,15 +92,14 @@ class VastgoedNederlandScraper(BaseScraper):
                 listings.append(
                     {
                         "adres": street,
-                        "link": property_url,
                         "naam_dorp_stad": city,
-                        "huurprijs": price,
+                        "huurprijs": price_numeric,
                         "oppervlakte": area,
+                        "link": property_url,
                     }
                 )
-
             except (AttributeError, TypeError, ValueError) as e:
-                self.logger.error(f"Error processing property: {e}")
+                self.logger.error("Error processing property: %s", e)
                 continue
 
         # Check if there are more pages
@@ -121,11 +122,10 @@ class VastgoedNederlandScraper(BaseScraper):
         Returns:
             Dictionary with attributes of the rental property.
         """
-
         soup = self.get_page_content(property_url)
         if not soup:
             self.logger.warning(
-                f"Failed to retrieve property details from {property_url}"
+                "Failed to retrieve property details from %s", property_url
             )
             return {}
 

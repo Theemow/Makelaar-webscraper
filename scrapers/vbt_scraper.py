@@ -98,11 +98,15 @@ class VBTScraper(BaseScraper):
                     # Extract price
                     price_element = item.select_one("div.price")
                     if price_element:
-                        price = self.clean_text(price_element.text)
-                        # Ensure proper € symbol and formatting
-                        if "€" not in price:
-                            price = re.sub(r"^(\d)", "€ \\1", price)
-                        property_data["huurprijs"] = price
+                        price_text = self.clean_text(
+                            price_element.text
+                        )  # Ensure proper € symbol and formatting
+                        if "€" not in price_text:
+                            price_text = re.sub(r"^(\d)", "€ \\1", price_text)
+                        # Extract numeric price and store it
+                        property_data["huurprijs"] = self.extract_rental_price(
+                            price_text
+                        )
 
                     # Extract size/area
                     size_row = item.select("table tr")

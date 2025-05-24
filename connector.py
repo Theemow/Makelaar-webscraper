@@ -104,14 +104,13 @@ class Connector:
         # ipv alleen adres
         unique_nieuwe_listings = []
         processed_property_keys = set()
-
         for prop in nieuwe_properties:
             adres = prop.get("adres", "").strip().lower()
             link = prop.get("link", "").strip().lower()
-            prijs = prop.get("huurprijs", "").strip().lower()
+            huurprijs = prop.get("huurprijs", 0)
 
             # Maak een unieke sleutel voor deze property
-            unique_key = (adres, link, prijs)
+            unique_key = (adres, link, str(huurprijs))
 
             if unique_key not in processed_property_keys:
                 processed_property_keys.add(unique_key)
@@ -292,7 +291,7 @@ class Connector:
             unique_key = (
                 prop.adres.strip().lower() if prop.adres else "",
                 prop.link.strip().lower() if prop.link else "",
-                prop.huurprijs.strip().lower() if prop.huurprijs else "",
+                str(prop.huurprijs) if prop.huurprijs is not None else "",
             )
             db_properties_dict[unique_key] = prop
 
@@ -302,14 +301,13 @@ class Connector:
         scraped_unique_keys = set()
         # Set om dubbele geschraapte properties te detecteren
         seen_scraped_keys = set()
-
         for prop in scraped_properties:
             adres = prop.get("adres", "").strip().lower()
             link = prop.get("link", "").strip().lower()
-            prijs = prop.get("huurprijs", "").strip().lower()
+            huurprijs = prop.get("huurprijs", 0)
 
             # Maak een unieke sleutel voor deze property
-            unique_key = (adres, link, prijs)
+            unique_key = (adres, link, str(huurprijs))
 
             # Als we deze property al eerder hebben gezien in de huidige scrape-run, skip
             if unique_key in seen_scraped_keys:
@@ -369,7 +367,7 @@ class Connector:
                 (
                     prop.adres.strip().lower() if prop.adres else "",
                     prop.link.strip().lower() if prop.link else "",
-                    prop.huurprijs.strip().lower() if prop.huurprijs else "",
+                    str(prop.huurprijs) if prop.huurprijs is not None else "",
                 )
             )
 
@@ -377,10 +375,10 @@ class Connector:
             try:
                 adres = prop.get("adres", "").strip().lower()
                 link = prop.get("link", "").strip().lower()
-                prijs = prop.get("huurprijs", "").strip().lower()
+                huurprijs = prop.get("huurprijs", 0)
 
                 # Maak een unieke sleutel voor deze property
-                unique_key = (adres, link, prijs)
+                unique_key = (adres, link, str(huurprijs))
 
                 # Sla over als we deze property al hebben toegevoegd in deze run
                 if unique_key in added_property_keys:

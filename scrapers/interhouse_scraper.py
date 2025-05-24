@@ -195,12 +195,14 @@ class InterHouseScraper(BaseScraper):
                 # Extract city/location
                 city_element = item.select_one("p.c-result-item__location-label")
                 if city_element:
-                    property_data["naam_dorp_stad"] = self.clean_text(city_element.text)
-
-                # Extract price
+                    property_data["naam_dorp_stad"] = self.clean_text(
+                        city_element.text
+                    )  # Extract price
                 price_element = item.select_one("p.c-result-item__price-label")
                 if price_element:
-                    property_data["huurprijs"] = self.clean_text(price_element.text)
+                    price_text = self.clean_text(price_element.text)
+                    # Store the numeric price in huurprijs
+                    property_data["huurprijs"] = self.extract_rental_price(price_text)
 
                 # Extract area/size
                 # Find the element that contains "Woonoppervlakte"
@@ -285,12 +287,14 @@ class InterHouseScraper(BaseScraper):
             # Extract city/location
             city_element = soup.select_one("p.c-listing-heading__location-label")
             if city_element:
-                details["naam_dorp_stad"] = self.clean_text(city_element.text)
-
-            # Extract price
+                details["naam_dorp_stad"] = self.clean_text(
+                    city_element.text
+                )  # Extract price
             price_element = soup.select_one("p.c-listing-heading__price-label")
             if price_element:
-                details["huurprijs"] = self.clean_text(price_element.text)
+                price_text = self.clean_text(price_element.text)
+                # Store the numeric price in huurprijs
+                details["huurprijs"] = self.extract_rental_price(price_text)
 
             # Extract area/size
             # Look for the specifications table that contains the area information
