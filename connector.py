@@ -282,6 +282,9 @@ class Connector:
         Returns:
             Tuple met (nieuwe_properties, bestaande_properties, verwijderde_properties)
         """
+        # Apply price filters from configuration if enabled
+        scraped_properties = self._apply_price_filters(scraped_properties)
+
         # Maak een dictionary van database properties om duplicaten te vinden
         # We gebruiken nu een combinatie van adres, link en prijs als unieke sleutel
         db_properties_dict = {}
@@ -472,6 +475,60 @@ class Connector:
             self.log_service.log_email_sent(False, [])
             return False
 
+    def _apply_price_filters(self, properties):
+        """
+        Filter properties based on price settings from the configuration.
+
+        Args:
+            properties: List of properties to filter
+
+        Returns:
+            Filtered list of properties
+        """
+        try:
+            # Import config here to avoid circular imports
+            from webscraper_config import FILTERS
+
+            # Skip filtering if global filtering is disabled
+            if not FILTERS.get("FILTERING_ENABLED", False):
+                return properties
+
+            filtered_properties = []
+
+            # Apply max price filter if enabled
+            max_price_filter = FILTERS.get(
+                "MAX_PRICE_FILTER", {"enabled": False, "max_price": 0}
+            )
+
+            if max_price_filter.get("enabled", False):
+                max_price = max_price_filter.get("max_price", 0)
+
+                for prop in properties:
+                    price = prop.get("huurprijs", 0)
+
+                    # Skip properties with no price
+                    if price == 0:
+                        filtered_properties.append(prop)
+                        continue
+
+                    # Only include properties with price less than or equal to max_price
+                    if price <= max_price:
+                        filtered_properties.append(prop)
+                    else:
+                        logger.debug(
+                            f"Property filtered out due to price (€{price} > €{max_price}): {prop.get('adres', 'unknown')}"
+                        )
+
+                return filtered_properties
+
+            # If max price filter is disabled, return all properties
+            return properties
+
+        except (ImportError, KeyError) as e:
+            logger.error(f"Error applying price filters: {e}")
+            # If there's an error, return the original list
+            return properties
+
     # Factory functies die Property en BrokerAgency objecten maken met de juiste klassen
     # Deze worden geïmplementeerd in de HuurhuisWebscraper notebook
     def _create_broker_agency(self, broker_id, naam, link):
@@ -552,14 +609,13 @@ def main():
             "url": "https://www.pararius.nl/huurwoningen/amsterdam/",
         },
     ]
-
     # Process brokers in parallel
     alle_nieuwe_properties, alle_verwijderde_properties = (
         communicatie.parallel_process_brokers(makelaars)
     )
 
     # Apply database updates synchronously
-    communicatie.apply_database_updates(
+    added_properties, removed_properties = communicatie.apply_database_updates(
         alle_nieuwe_properties, alle_verwijderde_properties
     )
 
