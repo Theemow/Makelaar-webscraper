@@ -221,6 +221,59 @@ The application (whether run locally or in Docker) will:
 
 When run in Docker, the application automatically executes hourly via cron.
 
+## Docker Logging
+
+The application is configured to work properly with Docker's logging system and tools like Portainer. Here's how to test and debug logging:
+
+### Testing Docker Logging
+
+To test if logging is working correctly in your Docker environment:
+
+```bash
+# Test logging functionality
+docker exec huurhuis-webscraper python /app/test_docker_logging.py
+
+# View real-time logs
+docker logs -f huurhuis-webscraper
+
+# View logs in Portainer
+# Go to Containers -> huurhuis-webscraper -> Logs
+```
+
+### Troubleshooting Logging Issues
+
+If logs are not appearing in Portainer or Docker logs:
+
+1. **Check container status**:
+   ```bash
+   docker ps
+   docker logs huurhuis-webscraper
+   ```
+
+2. **Verify cron is running**:
+   ```bash
+   docker exec huurhuis-webscraper ps aux | grep cron
+   ```
+
+3. **Test manual execution**:
+   ```bash
+   docker exec huurhuis-webscraper python -u /app/huurhuis_webscraper.py
+   ```
+
+4. **Check environment variables**:
+   ```bash
+   docker exec huurhuis-webscraper env | grep -E "(DOCKER_ENVIRONMENT|PYTHONUNBUFFERED)"
+   ```
+
+### Logging Configuration
+
+The application uses several techniques to ensure proper Docker logging:
+
+- **Unbuffered Output**: Python runs with `-u` flag and `PYTHONUNBUFFERED=1`
+- **Direct stdout/stderr**: Logs are directed to `/proc/1/fd/1` and `/proc/1/fd/2`
+- **Forced Flushing**: Log handlers force immediate flushing in Docker environment
+- **Simple Formatting**: Docker-friendly log format without complex JSON structures
+
 ## How It Works
 
 1. **Data Collection**: The application uses specialized scrapers for each real estate website to collect rental property listings.

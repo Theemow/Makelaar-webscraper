@@ -4,6 +4,10 @@ set -e
 # Set Docker environment variable for detection in code
 export DOCKER_ENVIRONMENT=true
 
+# Ensure proper logging to Docker
+exec > >(tee -a /proc/1/fd/1)
+exec 2> >(tee -a /proc/1/fd/2)
+
 # Set proper permissions for crontab
 chmod 0644 /etc/cron.d/huurhuis_crontab
 crontab /etc/cron.d/huurhuis_crontab

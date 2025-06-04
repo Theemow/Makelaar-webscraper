@@ -8,6 +8,7 @@ LABEL version="1.0"
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    PYTHONIOENCODING=utf-8 \
     TZ=Europe/Amsterdam
 
 # Install PostgreSQL client tools, cron, Chrome dependencies and other dependencies

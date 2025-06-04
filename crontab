@@ -4,5 +4,5 @@ DOCKER_ENVIRONMENT=true
 
 # Run the webscraper at 12:00 and 18:00 every day - logs go to stdout/stderr
 # This allows Docker's logging drivers to capture the output
-0 * * * * cd /app && python -u /app/huurhuis_webscraper.py 2>&1
+0 * * * * cd /app && python -u /app/huurhuis_webscraper.py >> /proc/1/fd/1 2>>/proc/1/fd/2
 # New line character required!
