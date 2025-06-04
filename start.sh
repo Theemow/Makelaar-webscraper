@@ -10,13 +10,13 @@ crontab /etc/cron.d/huurhuis_crontab
 
 # Initialize the database
 echo "Initializing database..."
-python /app/init_db.py
+python -u /app/init_db.py
 
 # Run the webscraper immediately for first run
 echo "Starting initial webscraper run..."
-python /app/huurhuis_webscraper.py
+python -u /app/huurhuis_webscraper.py
 
 # Start cron in foreground (this keeps the container running)
 echo "Starting cron service..."
-echo "Webscraper will run daily at 12:00 and 18:00"
+echo "Webscraper will run every hour"
 cron -f

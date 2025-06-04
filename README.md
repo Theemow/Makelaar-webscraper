@@ -33,8 +33,9 @@ A Python application that scrapes rental property listings from various Dutch re
   - requests
   - psycopg2-binary
   - typing-extensions
-  - concurrent.futures (included in Python's standard library)
-  - playwright or selenium (for JavaScript-heavy sites)
+  - playwright
+  - selenium
+  - webdriver-manager
   - jupyter and notebook (for testing with the notebook)
 
 ### For Docker Deployment
@@ -64,6 +65,7 @@ A Python application that scrapes rental property listings from various Dutch re
 
    ```bash
    playwright install --with-deps chromium
+   # Selenium's webdriver-manager will download drivers on demand
    ```
 
 ### Docker Installation (Recommended)
@@ -84,8 +86,14 @@ The project includes Docker support for easy deployment:
    
    - Set up a PostgreSQL database container
    - Build and run the webscraper container
-   - Configure automatic scheduling via cron (runs at 12:00 and 18:00 daily)
+- Configure automatic scheduling via cron (runs hourly)
    - Store logs in a persistent volume
+
+   To check logs:
+
+   ```bash
+   docker logs huurhuis-webscraper
+   ```
 
 ## Configuration
 
@@ -148,7 +156,7 @@ When using Docker Compose, the database is automatically:
 2. Initialized on first startup
 3. Persisted through a Docker volume
 
-The database schema is created using the init_db.py script, which creates the following structure:
+The database schema is created using the `init_db.py` script, which creates the following structure:
 
 ```sql
 CREATE TABLE broker_agencies (
@@ -169,7 +177,7 @@ CREATE TABLE property (
 );
 ```
 
-Note: The database schema matches the structure in `data_access.py`. If you modify the data models, make sure to update the init_db.py schema accordingly.
+Note: The database schema matches the structure in `data_access.py`. If you modify the data models, make sure to update the `init_db.py` schema accordingly.
 
 ## Usage
 
@@ -211,7 +219,7 @@ The application (whether run locally or in Docker) will:
 5. Update the database with new and removed properties
 6. Send email notifications if any new properties are found
 
-When run in Docker, the application automatically executes twice daily at 12:00 and 18:00 via cron.
+When run in Docker, the application automatically executes hourly via cron.
 
 ## How It Works
 
@@ -251,7 +259,7 @@ When run in Docker, the application automatically executes twice daily at 12:00 
 
 - `Dockerfile`: Defines the container image for the webscraper application
 - `docker-compose.yml`: Orchestrates the deployment of both webscraper and PostgreSQL containers
-- `crontab`: Defines the schedule for automatic execution in the container
+- `crontab`: Defines the schedule for automatic execution in the container (runs hourly)
 - `start.sh`: Container startup script that initializes the database and starts the cron service
 
 ### Scraper System
@@ -275,11 +283,11 @@ The project uses a modular scraper system where each website has its own special
 | Scraper Type        | Website                         | Location Support    | JavaScript Required |
 |---------------------|--------------------------------|---------------------|---------------------|
 | vdbunt             | Van Roomen Van de Bunt         | Leusden area        | No                  |
-| pararius           | Pararius                        | Leusden             | No                  |
+| pararius           | Pararius                        | Various (Leusden, Veenendaal, Amersfoort, Ede) | No                  |
 | zonnenberg         | Zonnenberg Makelaardij          | Veenendaal area     | No                  |
 | ditters            | Ditters Makelaars               | Veenendaal area     | No                  |
-| interhouse-utrecht  | InterHouse                     | Utrecht             | Yes (optional)      |
-| interhouse-amersfoort| InterHouse                    | Amersfoort          | Yes (optional)      |
+| interhouse-utrecht  | InterHouse                     | Utrecht             | Yes (Selenium)      |
+| interhouse-amersfoort| InterHouse                    | Amersfoort          | Yes (Selenium)      |
 | vastgoednederland   | VastgoedNederland              | Veenendaal area     | No                  |
 | vbt                | VBT Verhuurmakelaars            | Veenendaal area     | No                  |
 
@@ -309,7 +317,7 @@ The project uses a modular scraper system where each website has its own special
 
 - **docker-compose.yml**: Configures the multi-container setup with PostgreSQL and the webscraper service, defining how they interact, what volumes to mount, and environment variables.
 
-- **crontab**: Contains the schedule for when the webscraper should run automatically (currently set to 12:00 and 18:00 daily).
+- **crontab**: Contains the schedule for when the webscraper should run automatically (currently set to run hourly).
 
 - **start.sh**: Shell script that runs when the Docker container starts, initializing the database, running an initial scrape, and starting the cron service.
 
@@ -407,33 +415,22 @@ To modify the database schema:
 
 ### Scheduled Execution
 
-The application can be scheduled to run automatically:
+The application is designed to run on a schedule to keep track of new rental listings.
 
 #### Docker (Recommended)
 
-When deployed using the provided Docker setup, the application is already configured to run automatically:
+The `docker-compose.yml` and `crontab` files are configured to run the scraper hourly. This is the recommended way to schedule the application.
 
-- The `crontab` file is automatically installed in the container
-- Scheduled runs occur at 12:00 and 18:00 daily
-- Logs are stored in the `/app/logs` directory which is mounted as a volume
+#### Linux (Cron)
 
-To modify the schedule:
-
-1. Edit the `crontab` file in the project root
-2. Rebuild and restart your containers:
-
-   ```bash
-   docker-compose down
-   docker-compose up -d --build
-   ```
-
-#### Linux/Unix
-
-For a non-Docker deployment on Linux/Unix, use crontab to schedule the execution:
+If running directly on a Linux system (without Docker), you can set up a cron job:
 
 ```bash
-# Run at 12:00 and 18:00 every day
-0 12,18 * * * cd /path/to/Makelaar-webscraper && python huurhuis_webscraper.py
+# Edit crontab
+crontab -e
+
+# Add this line to run hourly (at minute 0)
+0 * * * * /usr/bin/python3 /path/to/Makelaar-webscraper/huurhuis_webscraper.py >> /path/to/logs/cron.log 2>&1
 ```
 
 #### Windows
@@ -441,10 +438,10 @@ For a non-Docker deployment on Linux/Unix, use crontab to schedule the execution
 For Windows systems, use Task Scheduler:
 
 1. Create a new task in Windows Task Scheduler
-2. Set the trigger to run at specific times (e.g., 12:00 and 18:00 daily)
-3. Set the action to start a program: `python` with arguments `C:\path\to\Makelaar-webscraper\huurhuis_webscraper.py`
+2. Set the trigger to run at specific times (e.g., hourly)
+3. Set the action to start a program: `python` with arguments `C:\\path\\to\\Makelaar-webscraper\\huurhuis_webscraper.py`
 
-Recommended scheduling: Twice daily (around 12:00 and 18:00) to catch new listings
+Recommended scheduling: Hourly to catch new listings promptly
 
 ## License
 
