@@ -5,11 +5,10 @@ Deze module coördineert tussen de webscraper en de database.
 Het verwerkt de geschraapte data en slaat nieuwe listings op in de database.
 """
 
-import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Tuple
 
 # Import the logging service
 from log_service import LogService, get_logger
@@ -42,9 +41,6 @@ class Connector:
         """
         self.db = db_connection
         self.nieuwe_listings = []  # Houdt nieuwe listings bij voor rapportages
-        self.processed_addresses: Set[str] = (
-            set()
-        )  # Set om adressen bij te houden die al zijn verwerkt
         self.log_service = LogService()  # Get the singleton instance
 
         # Thread safety
@@ -61,12 +57,9 @@ class Connector:
         Args:
             broker_naam: Naam van de makelaar
             scraper_type: Type scraper (bijvoorbeeld 'vdbunt', 'pararius')
-            broker_url: URL van de makelaar (optioneel, alleen nodig bij nieuwe makelaars)
-
-        Returns:
+            broker_url: URL van de makelaar (optioneel, alleen nodig bij nieuwe makelaars)        Returns:
             Tuple containing (nieuwe_properties, verwijderde_properties)
         """
-        thread_name = threading.current_thread().name
         logger.info("Verwerken van makelaar begonnen")
 
         # 1. Controleer of de broker bestaat, zo niet maak deze aan
@@ -443,15 +436,6 @@ class Connector:
             except (ValueError, AttributeError) as e:
                 logger.error("Fout bij verwijderen van property %s: %s", prop.adres, e)
 
-    def rapporteer_nieuwe_listings(self):
-        """
-        Geef een lijst van alle nieuwe listings die zijn gevonden.
-
-        Returns:
-            Lijst met nieuwe Property-objecten
-        """
-        return self.nieuwe_listings
-
     def verstuur_email_met_nieuwe_listings(self, mail_service, recipients):
         """
         Verstuur een e-mail met nieuwe listings die zijn gevonden.
@@ -566,104 +550,3 @@ class Connector:
                 "oppervlakte": oppervlakte,
             },
         )
-
-
-def main():
-    """Hoofdfunctie die de connector aanstuurt."""
-    # Get the logging service
-    log_service = LogService()
-
-    # Voor standalone gebruik, importeer DataAccess vanuit HuurhuisWebscraper.ipynb
-    try:
-        # Probeer de DataAccess klasse te importeren uit notebook_utils
-        # Commented out to prevent import errors since notebook_utils may not exist
-        # from notebook_utils import DataAccess, MailService
-        # Use dummy classes instead
-        DataAccess = type("DataAccess", (), {})
-        MailService = type("MailService", (), {})
-    except ImportError:
-        logger.error(
-            "Om deze script standalone te gebruiken, moet je de DataAccess klasse importeren"
-        )
-        logger.error(
-            "uit de HuurhuisWebscraper.ipynb. Voeg het volgende toe aan een bestand notebook_utils.py:"
-        )
-        logger.error(
-            "from HuurhuisWebscraper import DataAccess, BrokerAgency, Property, MailService"
-        )
-        return []
-
-    # Initialiseer de database-verbinding
-    db = DataAccess()
-
-    # Initialiseer de connector
-    communicatie = Connector(db)
-
-    # Lijst met te verwerken makelaars en hun scraper-type
-    makelaars = [
-        {
-            "naam": "Van Roomen Van de Bunt NVM Makelaars",
-            "type": "vdbunt",
-            "url": "https://www.vdbunt.nl/aanbod/woningaanbod/huur/",
-        },
-        {
-            "naam": "Pararius",
-            "type": "pararius",
-            "url": "https://www.pararius.nl/huurwoningen/amsterdam/",
-        },
-    ]
-    # Process brokers in parallel
-    alle_nieuwe_properties, alle_verwijderde_properties = (
-        communicatie.parallel_process_brokers(makelaars)
-    )
-
-    # Apply database updates synchronously
-    added_properties, removed_properties = communicatie.apply_database_updates(
-        alle_nieuwe_properties, alle_verwijderde_properties
-    )
-
-    # Verstuur e-mail met nieuwe listings
-    if alle_nieuwe_properties:
-        try:
-            # E-mailconfiguratie uit webscraper_config.py halen
-            try:
-                from webscraper_config import EMAIL
-
-                sender_email = EMAIL["sender_email"]
-                sender_password = EMAIL["sender_password"]
-                recipients = EMAIL[
-                    "recipients"
-                ]  # Nu wordt de lijst met ontvangers gebruikt
-                smtp_server = EMAIL["smtp_server"]
-                smtp_port = EMAIL["smtp_port"]
-            except ImportError:
-                logger.error("Config.py niet gevonden. E-mail wordt niet verzonden.")
-                return  # Stop verdere verwerking als config niet gevonden wordt
-            except KeyError as e:
-                logger.error(
-                    "Ontbrekende configuratiesleutel in config.py: %s. E-mail wordt niet verzonden.",
-                    e,
-                )
-                return  # Stop verdere verwerking als er een sleutel mist
-
-            # Initialiseer de mail service
-            mail_service = MailService(
-                sender_email, sender_password, smtp_server, smtp_port
-            )
-
-            # Verstuur e-mail met nieuwe listings
-            communicatie.verstuur_email_met_nieuwe_listings(mail_service, recipients)
-
-        except (ImportError, KeyError, ValueError) as e:
-            logger.error("Fout bij het versturen van de e-mail: %s", e)
-
-    # Log application end with statistics
-    log_service.log_app_end(
-        len(alle_nieuwe_properties), len(alle_verwijderde_properties)
-    )
-
-    return alle_nieuwe_properties
-
-
-if __name__ == "__main__":
-    main()

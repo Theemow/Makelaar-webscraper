@@ -97,23 +97,6 @@ class DataAccess:
                     return BrokerAgency(id=result[0], naam=result[1], link=result[2])
                 return None
 
-    def get_broker_agency(self, agency_id: int) -> Optional[BrokerAgency]:
-        """Get a broker agency by ID."""
-        with self.get_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    """
-                    SELECT broker_id, broker_name, hyperlink
-                    FROM broker_agencies
-                    WHERE broker_id = %s
-                    """,
-                    (agency_id,),
-                )
-                result = cursor.fetchone()
-                if result:
-                    return BrokerAgency(id=result[0], naam=result[1], link=result[2])
-                return None
-
     def get_properties_for_broker(self, agency_id: int) -> List[Property]:
         """Get all properties for a specific broker agency."""
         with self.get_connection() as conn:
@@ -140,83 +123,6 @@ class DataAccess:
                     for row in results
                 ]
 
-    def get_all_properties(self) -> List[Property]:
-        """Get all properties in the database."""
-        with self.get_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    """
-                    SELECT broker_id, adres, hyperlink, CURRENT_DATE, 'Onbekend', price, size
-                    FROM property
-                    """
-                )
-                results = cursor.fetchall()
-                return [
-                    Property(
-                        makelaardij_id=row[0],
-                        adres=row[1],
-                        link=row[2],
-                        toegevoegd_op=row[3],
-                        naam_dorp_stad=row[4],
-                        huurprijs=row[5],
-                        oppervlakte=row[6],
-                    )
-                    for row in results
-                ]
-
-    def get_all_properties_for_location(self, location: str) -> List[Property]:
-        """Get all properties for a specific location."""
-        with self.get_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    """
-                    SELECT broker_id, adres, hyperlink, CURRENT_DATE, 'Onbekend', price, size
-                    FROM property
-                    WHERE naam_dorp_stad = %s
-                    """,
-                    (location,),
-                )
-                results = cursor.fetchall()
-                return [
-                    Property(
-                        makelaardij_id=row[0],
-                        adres=row[1],
-                        link=row[2],
-                        toegevoegd_op=row[3],
-                        naam_dorp_stad=row[4],
-                        huurprijs=row[5],
-                        oppervlakte=row[6],
-                    )
-                    for row in results
-                ]
-
-    # Update Operations
-    def update_property(self, prop: Property) -> None:
-        """Update a property in the database."""
-        with self.get_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    """
-                    UPDATE property
-                    SET price = %s, size = %s
-                    WHERE broker_id = %s AND adres = %s
-                    """,
-                    (prop.huurprijs, prop.oppervlakte, prop.makelaardij_id, prop.adres),
-                )
-
-    def update_broker_agency(self, agency: BrokerAgency) -> None:
-        """Update a broker agency in the database."""
-        with self.get_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    """
-                    UPDATE broker_agencies
-                    SET broker_name = %s, hyperlink = %s
-                    WHERE broker_id = %s
-                    """,
-                    (agency.naam, agency.link, agency.id),
-                )
-
     # Delete Operations
     def remove_property(self, makelaardij_id: int, adres: str) -> None:
         """Remove a property from the database."""
@@ -228,25 +134,4 @@ class DataAccess:
                     WHERE broker_id = %s AND adres = %s
                     """,
                     (makelaardij_id, adres),
-                )
-
-    def remove_broker_agency(self, agency_id: int) -> None:
-        """Remove a broker agency from the database."""
-        with self.get_connection() as conn:
-            with conn.cursor() as cursor:
-                # First remove all properties associated with this agency
-                cursor.execute(
-                    """
-                    DELETE FROM property
-                    WHERE broker_id = %s
-                    """,
-                    (agency_id,),
-                )
-                # Then remove the agency itself
-                cursor.execute(
-                    """
-                    DELETE FROM broker_agencies
-                    WHERE broker_id = %s
-                    """,
-                    (agency_id,),
                 )
