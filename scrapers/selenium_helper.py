@@ -56,7 +56,6 @@ def create_chrome_driver(headless: bool = True) -> Optional["webdriver.Chrome"]:
 
         # Create and return the driver
         driver = webdriver.Chrome(service=service, options=options)
-        logger.info("Chrome WebDriver initialized successfully")
         return driver
 
     except Exception as e:
@@ -74,6 +73,5 @@ def quit_driver(driver: Optional["webdriver.Chrome"]) -> None:
     if driver is not None:
         try:
             driver.quit()
-            logger.info("Chrome WebDriver closed successfully")
         except Exception as e:
             logger.error(f"Error closing Chrome WebDriver: {e}")

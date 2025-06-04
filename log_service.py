@@ -143,21 +143,6 @@ class LogService:
         else:
             self.root_logger.error("Failed to send email notification")
 
-    def log_broker_processing(
-        self, broker_name: str, new_count: int, removed_count: int
-    ) -> None:
-        """
-        Log summary of a broker agency processing.
-
-        Args:
-            broker_name: Name of the broker agency
-            new_count: Number of new properties found for this broker
-            removed_count: Number of removed properties for this broker
-        """
-        self.root_logger.info(
-            f"Broker: {broker_name} | New properties: {new_count} | Removed properties: {removed_count}"
-        )
-
 
 # Function to get the singleton instance
 def get_logger(name: str) -> logging.Logger:

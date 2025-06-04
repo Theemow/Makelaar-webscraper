@@ -114,11 +114,6 @@ class Connector:
                 prop["broker_id"] = broker.id
                 unique_nieuwe_listings.append(prop)
 
-        # Log summary for this broker
-        self.log_service.log_broker_processing(
-            broker_naam, len(unique_nieuwe_listings), len(verwijderde_properties)
-        )
-
         return unique_nieuwe_listings, verwijderde_properties
 
     def parallel_process_brokers(
@@ -339,6 +334,7 @@ class Connector:
             len(bestaande_properties),
             len(verwijderde_properties),
         )
+        log_broker_processing()
 
         return nieuwe_properties, bestaande_properties, verwijderde_properties
 

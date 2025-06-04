@@ -4,14 +4,13 @@ Het maakt de benodigde tabellen aan als ze nog niet bestaan.
 """
 
 import psycopg2
-from psycopg2 import sql
-import logging
 import time
 from webscraper_config import DATABASE
 
-# Configureer logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Import the centralized logging service instead of configuring basic logging
+from log_service import get_logger
+
+logger = get_logger(__name__)
 
 
 def wait_for_db():
@@ -32,7 +31,7 @@ def wait_for_db():
             logger.info("Database is beschikbaar. Verbinding succesvol.")
             return True
         except psycopg2.OperationalError:
-            logger.info(f"Wachten op database... Poging {attempt + 1}/{max_retries}")
+            logger.info("Wachten op database... Poging %d/%d", attempt + 1, max_retries)
             time.sleep(retry_interval)
 
     logger.error("Kon geen verbinding maken met de database na meerdere pogingen.")
@@ -104,12 +103,10 @@ def init_database():
                 ON DELETE NO ACTION
         )
         """
-        )
-
-        # Controleer of er tabellen zijn aangemaakt
+        )  # Controleer of er tabellen zijn aangemaakt
         cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
         tables = cursor.fetchall()
-        logger.info(f"Aangemaakte tabellen: {[table[0] for table in tables]}")
+        logger.info("Aangemaakte tabellen: %s", [table[0] for table in tables])
 
         cursor.close()
         connection.close()
@@ -117,8 +114,8 @@ def init_database():
         logger.info("Database schema is succesvol geïnitialiseerd.")
         return True
 
-    except Exception as e:
-        logger.error(f"Fout bij het initialiseren van het database schema: {e}")
+    except (psycopg2.Error, psycopg2.OperationalError) as e:
+        logger.error("Fout bij het initialiseren van het database schema: %s", e)
         return False
 
 
