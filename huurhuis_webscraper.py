@@ -87,9 +87,24 @@ def run_scraper_proces():
             "url": "https://www.vdbunt.nl/aanbod/woningaanbod/huur/",
         },
         {
-            "naam": "Pararius",
+            "naam": "Pararius leusden",
             "type": "pararius",
             "url": "https://www.pararius.nl/huurwoningen/leusden/",
+        },
+        {
+            "naam": "Pararius veenendaal",
+            "type": "pararius",
+            "url": "https://www.pararius.nl/huurwoningen/veenendaal/straal-10",
+        },
+        {
+            "naam": "Pararius amersfoort",
+            "type": "pararius",
+            "url": "https://www.pararius.nl/huurwoningen/amersfoort/straal-10",
+        },
+        {
+            "naam": "Pararius ede",
+            "type": "pararius",
+            "url": "https://www.pararius.nl/huurwoningen/ede/straal-10",
         },
         {
             "naam": "Zonnenberg Makelaardij",
