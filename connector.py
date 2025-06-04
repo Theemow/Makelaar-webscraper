@@ -88,6 +88,9 @@ class Connector:
 
         # 3. Scrape alle properties van de website
         scraped_properties = self._scrape_properties(scraper)
+        logger.info(
+            f"Makelaar {broker_naam} ({scraper_type}) heeft {len(scraped_properties)} woningen gescraped (voor filtering)."
+        )
 
         # 4. Haal alle bestaande properties op uit de database
         db_properties = self.db.get_properties_for_broker(broker.id)
