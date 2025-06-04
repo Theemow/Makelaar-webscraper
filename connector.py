@@ -334,7 +334,6 @@ class Connector:
             len(bestaande_properties),
             len(verwijderde_properties),
         )
-        log_broker_processing()
 
         return nieuwe_properties, bestaande_properties, verwijderde_properties
 
