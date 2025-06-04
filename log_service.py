@@ -57,10 +57,19 @@ class LogService:
         # Add console handler to the root logger (always needed)
         self.root_logger.addHandler(console_handler)
 
-        # Add file logging only when not in Docker environment
-        is_docker = os.environ.get("DOCKER_ENVIRONMENT", "false").lower() == "true"
+        # Add file logging only when we can explicitly detect we're NOT in a container
+        # Default behavior: assume Docker/container environment (stdout logging)
+        # Only add file logging when we can confirm we're running locally
+        is_local_development = os.environ.get(
+            "DOCKER_ENVIRONMENT", ""
+        ).lower() == "false" or (
+            not os.path.exists("/.dockerenv")  # No Docker indicator file
+            and os.environ.get("container") is None  # No container env var
+            and os.environ.get("DOCKER_ENVIRONMENT") is None  # No explicit Docker env
+            and os.name == "nt"
+        )  # Running on Windows (likely local development)
 
-        if not is_docker:
+        if is_local_development:
             # Create logs directory if it doesn't exist (only for non-Docker environments)
             log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
             if not os.path.exists(log_dir):
