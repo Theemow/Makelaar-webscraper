@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:  
-  
   webscraper:
     build: .
     container_name: huurhuis-webscraper    
@@ -13,15 +12,12 @@ services:
     environment:
       - TZ=Europe/Amsterdam
       - DOCKER_ENVIRONMENT=true
-      - PYTHONUNBUFFERED=1
     restart: unless-stopped
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "5"
-    tty: true
-    stdin_open: true
 
   postgres:
     image: postgres:14

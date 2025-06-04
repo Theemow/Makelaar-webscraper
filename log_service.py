@@ -44,37 +44,21 @@ class LogService:
         for handler in self.root_logger.handlers[:]:
             self.root_logger.removeHandler(handler)
 
-        # Check if running in Docker environment
-        is_docker = os.environ.get("DOCKER_ENVIRONMENT", "false").lower() == "true"
-
         # Create console handler with thread information (Docker standard practice)
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.INFO)
 
-        # Force flush after each log message for immediate Docker output
-        console_handler.stream = sys.stdout
-
-        # Use a simpler format that's more Docker-friendly
+        # Use JSON-like format for better parsing in container logging systems
         console_format = logging.Formatter(
-            "%(asctime)s - [%(threadName)s] - %(name)s - %(levelname)s - %(message)s"
+            '{"time": "%(asctime)s", "thread": "%(threadName)s", "name": "%(name)s", "level": "%(levelname)s", "message": "%(message)s"}'
         )
-        console_handler.setFormatter(
-            console_format
-        )  # Add console handler to the root logger (always needed)
+        console_handler.setFormatter(console_format)
+
+        # Add console handler to the root logger (always needed)
         self.root_logger.addHandler(console_handler)
 
-        # Force immediate flushing of all log messages in Docker
-        if is_docker:
-            # Override the emit method to force flush
-            original_emit = console_handler.emit
-
-            def flush_emit(record):
-                original_emit(record)
-                sys.stdout.flush()
-
-            console_handler.emit = flush_emit
-
         # Add file logging only when not in Docker environment
+        is_docker = os.environ.get("DOCKER_ENVIRONMENT", "false").lower() == "true"
 
         if not is_docker:
             # Create logs directory if it doesn't exist (only for non-Docker environments)

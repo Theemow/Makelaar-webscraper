@@ -5,8 +5,6 @@
 # Lees de readme.md voor meer informatie over de configuratie en het gebruik van deze scraper.
 
 # Imports:
-import sys
-import os
 import psycopg2
 from psycopg2 import sql
 from datetime import date
@@ -24,11 +22,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from queue import Queue
 import logging
 from datetime import datetime
-
-# Force stdout/stderr to be unbuffered for Docker
-if os.environ.get("DOCKER_ENVIRONMENT", "false").lower() == "true":
-    sys.stdout = os.fdopen(sys.stdout.fileno(), "w", 0)  # unbuffered
-    sys.stderr = os.fdopen(sys.stderr.fileno(), "w", 0)  # unbuffered
 
 # Import configuration
 from webscraper_config import DATABASE, EMAIL
@@ -76,10 +69,6 @@ class Huurhuisconnector(Connector):
 
 def run_scraper_proces():
     """Voer het volledige scraper proces uit."""
-    # Force flush output for Docker logging
-    if os.environ.get("DOCKER_ENVIRONMENT", "false").lower() == "true":
-        print("Starting HuurhuisWebscraper in Docker environment...", flush=True)
-
     # Initialize logging service
     log_service = LogService()
     logger = get_logger("HuurhuisWebscraper")
