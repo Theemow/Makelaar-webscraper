@@ -1,5 +1,8 @@
 # Set environment variables for cron
 PATH=/usr/local/bin:/usr/bin:/bin
+PYTHONUNBUFFERED=1
+DOCKER_ENVIRONMENT=true
+PYTHONDONTWRITEBYTECODE=1
 
 # Run the webscraper every hour - logs go to stdout/stderr
 # This allows Docker's logging drivers to capture the output
