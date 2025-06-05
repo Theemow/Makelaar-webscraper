@@ -96,12 +96,30 @@ def init_database():
             hyperlink text COLLATE pg_catalog."default",
             price text COLLATE pg_catalog."default",
             size text COLLATE pg_catalog."default",
+            last_seen date DEFAULT CURRENT_DATE,
             CONSTRAINT property_pkey PRIMARY KEY (property_id),
             CONSTRAINT broker FOREIGN KEY (broker_id)
                 REFERENCES public.broker_agencies (broker_id) MATCH SIMPLE
                 ON UPDATE NO ACTION
                 ON DELETE NO ACTION
         )
+        """
+        )
+
+        # Voeg last_seen kolom toe aan bestaande property tabellen als deze nog niet bestaat
+        cursor.execute(
+            """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns 
+                WHERE table_name = 'property' 
+                AND column_name = 'last_seen'
+                AND table_schema = 'public'
+            ) THEN
+                ALTER TABLE public.property ADD COLUMN last_seen date DEFAULT CURRENT_DATE;
+            END IF;
+        END $$;
         """
         )  # Controleer of er tabellen zijn aangemaakt
         cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")

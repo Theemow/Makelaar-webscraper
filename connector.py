@@ -129,9 +129,6 @@ class Connector:
         Returns:
             Tuple met (alle_nieuwe_properties, alle_verwijderde_properties)
         """
-        logger.info(
-            f"Starting parallel processing of {len(brokers)} brokers with max_workers={max_workers}"
-        )
 
         all_nieuwe_properties = []
         all_verwijderde_properties = []
@@ -172,9 +169,6 @@ class Connector:
                 except Exception as exc:
                     logger.error(f"Broker {broker_name} generated an exception: {exc}")
 
-        logger.info(
-            f"Parallel processing completed - Found {len(all_nieuwe_properties)} new and {len(all_verwijderde_properties)} removed properties"
-        )
         return all_nieuwe_properties, all_verwijderde_properties
 
     def _thread_wrapper(self, broker_naam, scraper_type, broker_url, thread_name):
@@ -194,9 +188,6 @@ class Connector:
             nieuwe_properties: List of new properties to add
             verwijderde_properties: List of properties to remove
         """
-        logger.info(
-            f"Applying database updates - {len(nieuwe_properties)} new, {len(verwijderde_properties)} removed"
-        )
 
         # Process new properties
         for prop in nieuwe_properties:
@@ -214,18 +205,18 @@ class Connector:
             except Exception as e:
                 logger.error(f"Error processing new property: {e}")
 
-        # Process removed properties
-        for prop in verwijderde_properties:
-            try:
-                self._verwerk_verwijderde_properties([prop])
-            except Exception as e:
-                logger.error(f"Error processing removed property: {e}")
+        # Remove properties that haven't been seen for more than 7 days
+        try:
+            removed_properties = self.db.remove_old_properties(days_threshold=7)
+        except Exception as e:
+            logger.error(f"Error removing old properties: {e}")
+            removed_properties = []
 
         # Store for reporting
         with self.result_lock:
             self.nieuwe_listings.extend(nieuwe_properties)
 
-        return len(nieuwe_properties), len(verwijderde_properties)
+        return len(nieuwe_properties), len(removed_properties)
 
     def _get_scraper(self, scraper_type: str) -> BaseScraper:
         """
@@ -293,7 +284,7 @@ class Connector:
         nieuwe_properties = []
         bestaande_properties = []
         scraped_unique_keys = set()
-        # Set om dubbele geschraapte properties te detecteren
+        # Set om dubbele geschraapde properties te detecteren
         seen_scraped_keys = set()
         for prop in scraped_properties:
             adres = prop.get("adres", "").strip().lower()
@@ -319,20 +310,24 @@ class Connector:
             # Als deze combinatie van kenmerken al bestaat, is het een bestaande property
             if unique_key in db_properties_dict:
                 bestaande_properties.append(prop)
+                # Update last_seen for existing property
+                db_prop = db_properties_dict[unique_key]
+                self.db.update_property_last_seen(db_prop.makelaardij_id, db_prop.adres)
             else:
                 nieuwe_properties.append(prop)
 
-        # Vind verwijderde properties - properties die in de database staan maar niet in de scraped data
+        # Voor verwijderde properties gebruiken we nu de remove_old_properties methode
+        # Die verwijdert alleen properties die al een week niet gezien zijn
+        # We returnen geen verwijderde properties hier omdat die later worden afgehandeld
         verwijderde_properties = []
-        for unique_key, prop in db_properties_dict.items():
-            if unique_key not in scraped_unique_keys:
-                verwijderde_properties.append(prop)
 
         logger.info(
-            "Nieuwe properties: %d, Bestaande properties: %d, Te verwijderen properties: %d",
+            "Nieuwe properties: %d, Bestaande properties: %d, Properties waarvan last_seen is bijgewerkt: %d",
             len(nieuwe_properties),
             len(bestaande_properties),
-            len(verwijderde_properties),
+            len(
+                bestaande_properties
+            ),  # Alle bestaande properties krijgen een last_seen update
         )
 
         return nieuwe_properties, bestaande_properties, verwijderde_properties
