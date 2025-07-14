@@ -7,6 +7,7 @@ from typing import Dict, Type
 from scrapers.base_scraper import BaseScraper
 from scrapers.ditters_scraper import DittersScraper
 from scrapers.interhouse_scraper import InterHouseScraper
+from scrapers.nederwoon_scraper import NederwoonScraper
 from scrapers.pararius_scraper import ParariusScraper
 from scrapers.vdbunt_scraper import VdBuntScraper
 from scrapers.vastgoednederland_scraper import VastgoedNederlandScraper
@@ -24,6 +25,7 @@ class ScraperFactory:
         "ditters": DittersScraper,
         "vastgoednederland": VastgoedNederlandScraper,
         "vbt": VBTScraper,
+        "nederwoon": NederwoonScraper,
     }
 
     @staticmethod
@@ -48,13 +50,22 @@ class ScraperFactory:
             return InterHouseScraper(location="Amersfoort")
         elif website == "interhouse":  # Default to Utrecht for backwards compatibility
             return InterHouseScraper(location="Utrecht")
+        
+        # Special handling for nederwoon with different locations
+        elif website == "nederwoon-utrecht":
+            return NederwoonScraper(location="Utrecht")
+        elif website == "nederwoon-amersfoort":
+            return NederwoonScraper(location="Amersfoort")
+        elif website == "nederwoon":  # Default to Amersfoort for backwards compatibility
+            return NederwoonScraper(location="Amersfoort")
 
         if website in ScraperFactory._SCRAPERS:
             return ScraperFactory._SCRAPERS[website]()
         else:
             available_scrapers = list(ScraperFactory._SCRAPERS.keys())
             available_scrapers.extend(
-                ["interhouse", "interhouse-utrecht", "interhouse-amersfoort"]
+                ["interhouse", "interhouse-utrecht", "interhouse-amersfoort", 
+                 "nederwoon", "nederwoon-utrecht", "nederwoon-amersfoort"]
             )
             available_scrapers_str = ", ".join(available_scrapers)
             raise ValueError(

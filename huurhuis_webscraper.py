@@ -136,6 +136,16 @@ def run_scraper_proces():
             "type": "vbt",
             "url": "https://vbtverhuurmakelaars.nl/woningen",
         },
+        {
+            "naam": "Nederwoon Amersfoort",
+            "type": "nederwoon-amersfoort",
+            "url": "https://www.nederwoon.nl/search?search_type=1&city=Amersfoort",
+        },
+        {
+            "naam": "Nederwoon Utrecht",
+            "type": "nederwoon-utrecht",
+            "url": "https://www.nederwoon.nl/search?city=Utrecht",
+        },
     ]
 
     # Set main thread name for better logging
