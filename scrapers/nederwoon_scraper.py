@@ -2,6 +2,7 @@
 Nederwoon scraper module for scraping rental properties from the Nederwoon website.
 Supports multiple locations including Amersfoort and Utrecht.
 """
+
 import re
 from typing import Dict, List
 from urllib.parse import urljoin
@@ -27,19 +28,21 @@ class NederwoonScraper(BaseScraper):
             location: The location to scrape, either "Amersfoort" or "Utrecht"
         """
         super().__init__("https://www.nederwoon.nl")
-        
+
         # Set the location (default to Amersfoort if invalid location provided)
         if location in self.LOCATIONS:
             self.location = location
         else:
-            self.logger.warning("Invalid location '%s', defaulting to Amersfoort", location)
+            self.logger.warning(
+                "Invalid location '%s', defaulting to Amersfoort", location
+            )
             self.location = "Amersfoort"
         # Add extended headers to mimic a real browser
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
             "Accept-Language": "nl,en-US;q=0.7,en;q=0.3",
-            "Accept-Encoding": "gzip, deflate, br",
+            # Removed Accept-Encoding to avoid Brotli compression issues
             "Connection": "keep-alive",
             "Upgrade-Insecure-Requests": "1",
         }
@@ -59,7 +62,7 @@ class NederwoonScraper(BaseScraper):
             # Return empty list for any page beyond first to stop pagination
             return []
 
-        url = f"{self.base_url}/search?search_type=1&city={self.location}"
+        url = f"{self.base_url}/search?city={self.location}"
 
         soup = self.get_page_content(url)
         if not soup:
@@ -89,14 +92,20 @@ class NederwoonScraper(BaseScraper):
 
                 # Extract city/location - look for postal code and city
                 location_element = item.select_one("p.color-medium.fixed-lh")
-                location = self.clean_text(location_element.text if location_element else None)
-                
+                location = self.clean_text(
+                    location_element.text if location_element else None
+                )
+
                 # Extract city name from location (remove postal code)
                 city = self._extract_city_from_location(location)
 
                 # Extract rental price
-                price_element = item.select_one("p.heading-md.text-regular.color-primary")
-                price_text = self.clean_text(price_element.text if price_element else None)
+                price_element = item.select_one(
+                    "p.heading-md.text-regular.color-primary"
+                )
+                price_text = self.clean_text(
+                    price_element.text if price_element else None
+                )
                 rental_price = self.extract_rental_price(price_text)
 
                 # Extract surface area
@@ -113,21 +122,32 @@ class NederwoonScraper(BaseScraper):
 
                 # Only add if we have the essential data
                 if address and address.lower() != "n/a":
+                    # For Nederwoon, make the address more unique by including the URL ID
+                    # to avoid duplicate filtering of different properties on the same street
+                    unique_address = address
+                    if property_url:
+                        # Extract the ID from the URL (e.g., /36852/ from the URL)
+                        url_id_match = re.search(r"/(\d+)/", property_url)
+                        if url_id_match:
+                            unique_address = f"{address} ({url_id_match.group(1)})"
+
                     listing = {
-                        "adres": address,
+                        "adres": unique_address,
                         "link": property_url,
                         "naam_dorp_stad": city,
                         "huurprijs": rental_price,
                         "oppervlakte": surface_area,
                     }
                     listings.append(listing)
-                    self.logger.debug("Added property: %s", address)
+                    self.logger.debug("Added property: %s", unique_address)
 
             except (AttributeError, TypeError, ValueError) as e:
                 self.logger.warning("Error extracting property data: %s", e)
                 continue
 
-        self.logger.info("Found %d properties on Nederwoon %s", len(listings), self.location)
+        self.logger.info(
+            "Found %d properties on Nederwoon %s", len(listings), self.location
+        )
         return listings
 
     def get_property_details(self, property_url: str) -> Dict[str, str]:
@@ -186,7 +206,9 @@ class NederwoonScraper(BaseScraper):
                         break
 
         except (AttributeError, TypeError) as e:
-            self.logger.error("Error extracting property details from %s: %s", property_url, e)
+            self.logger.error(
+                "Error extracting property details from %s: %s", property_url, e
+            )
 
         return details
 
@@ -204,10 +226,10 @@ class NederwoonScraper(BaseScraper):
 
         # Remove postal code pattern (e.g. '3829DS ' or '1234 AB ')
         clean_location = re.sub(r"^\d{4}\s*[A-Z]{2}\s*", "", location)
-        
+
         # Remove any remaining numbers and extra whitespace
         clean_location = re.sub(r"\d+", "", clean_location).strip()
-        
+
         return clean_location if clean_location else "N/A"
 
     def get_all_listings(self, max_pages: int = 5) -> List[Dict[str, str]]:

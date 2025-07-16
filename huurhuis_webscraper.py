@@ -139,7 +139,7 @@ def run_scraper_proces():
         {
             "naam": "Nederwoon Amersfoort",
             "type": "nederwoon-amersfoort",
-            "url": "https://www.nederwoon.nl/search?search_type=1&city=Amersfoort",
+            "url": "https://www.nederwoon.nl/search?city=Amersfoort",
         },
         {
             "naam": "Nederwoon Utrecht",
